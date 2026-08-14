@@ -40,7 +40,7 @@ type View =
   | "financeiro"
   | "configuracoes"
   | "administracao";
-type AccessScreen = "landing" | "login" | "two-factor" | "app";
+type AccessScreen = "landing" | "signup" | "login" | "two-factor" | "app";
 type UserRole = "professional" | "admin";
 type CalendarView = "Dia" | "Semana" | "Mês";
 type CalendarBlock = {
@@ -316,7 +316,13 @@ function Countdown({ appointment }: { appointment: Appointment }) {
   );
 }
 
-function PublicLanding({ onLogin }: { onLogin: () => void }) {
+function PublicLanding({
+  onLogin,
+  onTrial,
+}: {
+  onLogin: () => void;
+  onTrial: () => void;
+}) {
   return (
     <div className="public-site">
       <nav className="public-nav">
@@ -328,8 +334,9 @@ function PublicLanding({ onLogin }: { onLogin: () => void }) {
         </a>
         <div className="public-links">
           <a href="#recursos">Recursos</a>
+          <a href="#como-funciona">Como funciona</a>
           <a href="#seguranca">Segurança</a>
-          <a href="#sobre">Para quem é</a>
+          <a href="#planos">Planos</a>
         </div>
         <button className="nav-login" onClick={onLogin}>
           Entrar
@@ -340,32 +347,32 @@ function PublicLanding({ onLogin }: { onLogin: () => void }) {
         <section className="hero-section">
           <div className="hero-copy">
             <span className="hero-badge">
-              <Sparkles size={14} /> Sua prática mais leve
+              <Sparkles size={14} /> 15 dias grátis · sem cartão
             </span>
             <h1>
-              Mais presença no cuidado.
+              Seu consultório organizado.
               <br />
-              <em>Menos peso na gestão.</em>
+              <em>Sua mente mais tranquila.</em>
             </h1>
             <p>
-              Agenda, pacientes e financeiro reunidos em um espaço simples,
-              acolhedor e pensado para a rotina de psicólogos.
+              Agenda, pacientes e financeiro em um sistema simples para você
+              economizar tempo e se concentrar em quem realmente importa.
             </p>
             <div className="hero-actions">
-              <button className="landing-primary" onClick={onLogin}>
-                Acessar demonstração <ArrowRight size={18} />
+              <button className="landing-primary" onClick={onTrial}>
+                Começar meus 15 dias grátis <ArrowRight size={18} />
               </button>
               <a href="#recursos">Conhecer recursos</a>
             </div>
             <div className="trust-row">
               <span>
-                <CheckCircle2 size={16} /> Feito para psicólogos
+                <CheckCircle2 size={16} /> Sem cartão
               </span>
               <span>
-                <ShieldCheck size={16} /> Acesso protegido
+                <ShieldCheck size={16} /> Cancele quando quiser
               </span>
               <span>
-                <Clock3 size={16} /> Configuração simples
+                <Clock3 size={16} /> Comece em minutos
               </span>
             </div>
           </div>
@@ -469,6 +476,69 @@ function PublicLanding({ onLogin }: { onLogin: () => void }) {
           </div>
         </section>
 
+        <section className="workflow-section" id="como-funciona">
+          <div className="section-heading">
+            <span>SIMPLES DESDE O PRIMEIRO ACESSO</span>
+            <h2>Da agenda ao pagamento, sem planilhas soltas</h2>
+            <p>
+              O Sereno conecta as tarefas que mais ocupam o dia para sua rotina
+              fluir com menos esforço.
+            </p>
+          </div>
+          <div className="workflow-grid">
+            <article>
+              <b>01</b>
+              <span>
+                <CalendarClock />
+              </span>
+              <h3>Organize sua semana</h3>
+              <p>
+                Cadastre atendimentos, veja horários livres e bloqueie
+                compromissos em poucos cliques.
+              </p>
+            </article>
+            <i>
+              <ArrowRight />
+            </i>
+            <article>
+              <b>02</b>
+              <span>
+                <UsersRound />
+              </span>
+              <h3>Tenha tudo à mão</h3>
+              <p>
+                Encontre os dados administrativos e o link de atendimento de
+                cada paciente.
+              </p>
+            </article>
+            <i>
+              <ArrowRight />
+            </i>
+            <article>
+              <b>03</b>
+              <span>
+                <CircleDollarSign />
+              </span>
+              <h3>Acompanhe o financeiro</h3>
+              <p>Saiba o que foi pago e o que ainda precisa da sua atenção.</p>
+            </article>
+          </div>
+          <div className="value-strip">
+            <div>
+              <strong>50 min</strong>
+              <span>Sessões configuradas no seu ritmo</span>
+            </div>
+            <div>
+              <strong>3 visões</strong>
+              <span>Agenda por dia, semana e mês</span>
+            </div>
+            <div>
+              <strong>1 lugar</strong>
+              <span>Rotina centralizada e mais clara</span>
+            </div>
+          </div>
+        </section>
+
         <section className="security-band" id="seguranca">
           <div className="security-icon">
             <ShieldCheck />
@@ -489,24 +559,132 @@ function PublicLanding({ onLogin }: { onLogin: () => void }) {
               <Check /> Controle por perfil de acesso
             </li>
             <li>
-              <Check /> Registro de atividades administrativas
+              <Check /> Administração sem conteúdo clínico
             </li>
           </ul>
         </section>
 
+        <section className="pricing-section" id="planos">
+          <div className="pricing-copy">
+            <span>OFERTA DE LANÇAMENTO</span>
+            <h2>
+              Comece sem risco.
+              <br />
+              Continue porque faz sentido.
+            </h2>
+            <p>
+              Teste o Sereno por 15 dias com os recursos disponíveis. Sem
+              cartão, sem fidelidade e sem cobrança surpresa.
+            </p>
+            <ul>
+              <li>
+                <Check /> Configure no seu tempo
+              </li>
+              <li>
+                <Check /> Cancele quando quiser
+              </li>
+              <li>
+                <Check /> Preço fundador garantido por 12 meses
+              </li>
+            </ul>
+          </div>
+          <div className="pricing-card">
+            <span className="founder-label">
+              <Sparkles size={14} /> PLANO FUNDADOR
+            </span>
+            <p>Para psicólogos que querem organizar a prática desde agora.</p>
+            <div className="price">
+              <small>R$</small>
+              <strong>19,90</strong>
+              <span>/mês</span>
+            </div>
+            <small className="price-note">após 15 dias de teste gratuito</small>
+            <ul>
+              <li>
+                <CheckCircle2 /> Agenda por dia, semana e mês
+              </li>
+              <li>
+                <CheckCircle2 /> Pacientes e responsáveis
+              </li>
+              <li>
+                <CheckCircle2 /> Controle financeiro
+              </li>
+              <li>
+                <CheckCircle2 /> Links de atendimento online
+              </li>
+              <li>
+                <CheckCircle2 /> Acesso com duas etapas
+              </li>
+              <li>
+                <CheckCircle2 /> Atualizações no período fundador
+              </li>
+            </ul>
+            <button className="landing-primary price-button" onClick={onTrial}>
+              Quero ser fundador <ArrowRight size={18} />
+            </button>
+            <small>Sem cartão para começar · vagas iniciais limitadas</small>
+          </div>
+        </section>
+
+        <section className="faq-section">
+          <div className="section-heading">
+            <span>DÚVIDAS FREQUENTES</span>
+            <h2>Tudo claro antes de começar</h2>
+          </div>
+          <div className="faq-list">
+            <details open>
+              <summary>Preciso informar cartão para testar?</summary>
+              <p>
+                Não. Você pode experimentar o Sereno por 15 dias sem cadastrar
+                cartão.
+              </p>
+            </details>
+            <details>
+              <summary>O que acontece depois dos 15 dias?</summary>
+              <p>
+                Você escolhe se quer continuar no Plano Fundador por R$ 19,90 ao
+                mês. Nenhuma cobrança será feita automaticamente sem sua
+                autorização.
+              </p>
+            </details>
+            <details>
+              <summary>Existe fidelidade?</summary>
+              <p>
+                Não. A assinatura será mensal e poderá ser cancelada quando
+                quiser.
+              </p>
+            </details>
+            <details>
+              <summary>O Sereno já possui prontuário?</summary>
+              <p>
+                A primeira versão é focada em agenda, cadastro administrativo e
+                financeiro. O prontuário será desenvolvido em uma etapa
+                específica de segurança e conformidade.
+              </p>
+            </details>
+            <details>
+              <summary>Posso usar em celular e computador?</summary>
+              <p>
+                Sim. O Sereno é uma aplicação web responsiva e será acessível
+                pelo navegador.
+              </p>
+            </details>
+          </div>
+        </section>
+
         <section className="audience-section" id="sobre">
-          <span>CONSTRUÍDO PARA CRESCER COM VOCÊ</span>
+          <span>COMECE UMA ROTINA MAIS SERENA</span>
           <h2>
-            Comece com sua prática.
+            Menos tempo organizando.
             <br />
-            Evolua no seu tempo.
+            Mais tempo cuidando.
           </h2>
           <p>
-            O Sereno nasce para a rotina de uma psicóloga e está sendo preparado
-            para apoiar clínicas e outros profissionais no futuro.
+            Experimente por 15 dias e descubra como uma rotina mais organizada
+            também pode ser mais leve.
           </p>
-          <button className="landing-primary" onClick={onLogin}>
-            Entrar no Sereno <ArrowRight size={18} />
+          <button className="landing-primary" onClick={onTrial}>
+            Começar gratuitamente <ArrowRight size={18} />
           </button>
         </section>
       </main>
@@ -526,6 +704,8 @@ function PublicLanding({ onLogin }: { onLogin: () => void }) {
 
 function AccessPage({
   step,
+  name,
+  setName,
   email,
   setEmail,
   password,
@@ -535,9 +715,12 @@ function AccessPage({
   error,
   onBack,
   onLogin,
+  onSignup,
   onVerify,
 }: {
-  step: "login" | "two-factor";
+  step: "signup" | "login" | "two-factor";
+  name: string;
+  setName: (value: string) => void;
   email: string;
   setEmail: (value: string) => void;
   password: string;
@@ -547,6 +730,7 @@ function AccessPage({
   error: string;
   onBack: () => void;
   onLogin: (event: React.FormEvent) => void;
+  onSignup: (event: React.FormEvent) => void;
   onVerify: (event: React.FormEvent) => void;
 }) {
   return (
@@ -583,7 +767,63 @@ function AccessPage({
         <button className="access-back" onClick={onBack}>
           <ChevronLeft size={17} /> Voltar
         </button>
-        {step === "login" ? (
+        {step === "signup" ? (
+          <form className="access-card" onSubmit={onSignup}>
+            <span className="access-icon">
+              <Sparkles />
+            </span>
+            <span className="trial-chip">15 DIAS GRÁTIS · SEM CARTÃO</span>
+            <h1>Comece sua rotina mais serena</h1>
+            <p>Crie seu acesso de demonstração em menos de um minuto.</p>
+            <label>
+              Seu nome
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Nome completo"
+                required
+                autoFocus
+              />
+            </label>
+            <label>
+              E-mail profissional
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="seu@email.com"
+                required
+              />
+            </label>
+            <label>
+              Crie uma senha
+              <input
+                type="password"
+                minLength={6}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Mínimo de 6 caracteres"
+                required
+              />
+            </label>
+            <label className="terms-line">
+              <input type="checkbox" required />
+              <span>Li e aceito os termos desta demonstração.</span>
+            </label>
+            {error && (
+              <div className="access-error">
+                <AlertCircle size={16} />
+                {error}
+              </div>
+            )}
+            <button className="access-submit">
+              Criar meu acesso gratuito <ArrowRight size={18} />
+            </button>
+            <small className="signup-note">
+              Nenhuma cobrança será feita automaticamente.
+            </small>
+          </form>
+        ) : step === "login" ? (
           <form className="access-card" onSubmit={onLogin}>
             <span className="access-icon">
               <LockKeyhole />
@@ -693,6 +933,7 @@ function AccessPage({
 export default function App() {
   const [accessScreen, setAccessScreen] = useState<AccessScreen>("landing");
   const [userRole, setUserRole] = useState<UserRole>("professional");
+  const [signupName, setSignupName] = useState("");
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
@@ -968,23 +1209,49 @@ export default function App() {
     setAccessScreen("app");
   }
 
+  function beginTrial(event: React.FormEvent) {
+    event.preventDefault();
+    if (signupName.trim().length < 3 || loginPassword.length < 6) {
+      setAccessError(
+        "Confira seu nome e crie uma senha com pelo menos 6 caracteres.",
+      );
+      return;
+    }
+    setUserRole("professional");
+    setAccessError("");
+    setVerificationCode("");
+    setAccessScreen("two-factor");
+  }
+
   function logout() {
     setAccessScreen("landing");
     setView("inicio");
     setLoginEmail("");
     setLoginPassword("");
+    setSignupName("");
     setVerificationCode("");
     setAccessError("");
   }
 
   if (accessScreen === "landing") {
-    return <PublicLanding onLogin={() => setAccessScreen("login")} />;
+    return (
+      <PublicLanding
+        onLogin={() => setAccessScreen("login")}
+        onTrial={() => setAccessScreen("signup")}
+      />
+    );
   }
 
-  if (accessScreen === "login" || accessScreen === "two-factor") {
+  if (
+    accessScreen === "signup" ||
+    accessScreen === "login" ||
+    accessScreen === "two-factor"
+  ) {
     return (
       <AccessPage
         step={accessScreen}
+        name={signupName}
+        setName={setSignupName}
         email={loginEmail}
         setEmail={setLoginEmail}
         password={loginPassword}
@@ -994,9 +1261,16 @@ export default function App() {
         error={accessError}
         onBack={() => {
           setAccessError("");
-          setAccessScreen(accessScreen === "two-factor" ? "login" : "landing");
+          setAccessScreen(
+            accessScreen === "two-factor"
+              ? signupName
+                ? "signup"
+                : "login"
+              : "landing",
+          );
         }}
         onLogin={beginLogin}
+        onSignup={beginTrial}
         onVerify={verifyAccess}
       />
     );

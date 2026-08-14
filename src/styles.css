@@ -2592,6 +2592,34 @@ header {
   letter-spacing: 1px;
   color: #84918d;
 }
+.trial-chip {
+  justify-self: start;
+  background: #e8f1ec;
+  color: #52786d;
+  padding: 6px 9px;
+  border-radius: 14px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: -10px;
+}
+.terms-line {
+  display: flex !important;
+  grid-template-columns: none !important;
+  align-items: center;
+  gap: 8px !important;
+  font-weight: 500 !important;
+}
+.terms-line input {
+  width: 16px !important;
+  height: 16px !important;
+  padding: 0 !important;
+  accent-color: var(--green);
+}
+.signup-note {
+  text-align: center;
+  color: #87938f;
+}
 .demo-access button {
   border: 0;
   background: #f4f7f5;
@@ -3195,7 +3223,280 @@ header {
   min-height: 0 !important;
   accent-color: var(--green);
 }
+.workflow-section {
+  padding: 100px 24px;
+  max-width: 1120px;
+  margin: auto;
+}
+.workflow-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr;
+  align-items: center;
+  gap: 24px;
+  margin-top: 52px;
+}
+.workflow-grid article {
+  position: relative;
+  text-align: center;
+  padding: 30px 20px;
+}
+.workflow-grid article > b {
+  position: absolute;
+  top: 0;
+  right: 24px;
+  font: 700 42px Manrope;
+  color: #edf1ee;
+}
+.workflow-grid article > span {
+  width: 58px;
+  height: 58px;
+  border-radius: 17px;
+  background: #e5efe9;
+  color: #456f63;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 18px;
+  position: relative;
+}
+.workflow-grid h3 {
+  font: 700 18px Manrope;
+  margin: 0 0 9px;
+}
+.workflow-grid p {
+  font-size: 13px;
+  color: #74827d;
+  line-height: 1.6;
+  margin: 0;
+}
+.workflow-grid > i {
+  color: #a9b8b3;
+}
+.value-strip {
+  margin-top: 45px;
+  background: #2d554c;
+  border-radius: 18px;
+  padding: 25px 30px;
+  color: #fff;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+.value-strip > div {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  justify-content: center;
+  border-right: 1px solid #ffffff20;
+}
+.value-strip > div:last-child {
+  border: 0;
+}
+.value-strip strong {
+  font: 700 22px Manrope;
+}
+.value-strip span {
+  font-size: 11px;
+  color: #c6d7d1;
+  max-width: 125px;
+}
+.pricing-section {
+  padding: 100px max(24px, calc((100% - 1040px) / 2));
+  background: linear-gradient(145deg, #f1f6f2, #e8f0eb);
+  display: grid;
+  grid-template-columns: 1fr 430px;
+  align-items: center;
+  gap: 90px;
+}
+.pricing-copy > span,
+.pricing-section .section-heading > span {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: #66877d;
+  font-weight: 700;
+}
+.pricing-copy h2 {
+  font: 700 38px/1.2 Manrope;
+  color: #29443d;
+  margin: 13px 0 17px;
+}
+.pricing-copy > p {
+  color: #71807b;
+  line-height: 1.7;
+  max-width: 490px;
+}
+.pricing-copy ul,
+.pricing-card ul {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 11px;
+}
+.pricing-copy li,
+.pricing-card li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.pricing-copy li svg {
+  width: 17px;
+  color: #547e72;
+}
+.pricing-card {
+  background: #fff;
+  border: 1px solid #dbe5df;
+  border-radius: 23px;
+  padding: 32px;
+  box-shadow: 0 24px 60px #315f5622;
+  position: relative;
+}
+.pricing-card:before {
+  content: "MAIS VANTAJOSO";
+  position: absolute;
+  right: 22px;
+  top: -12px;
+  background: #d98365;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 12px;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.founder-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: #5b7b72;
+}
+.pricing-card > p {
+  color: #72807c;
+  font-size: 13px;
+}
+.price {
+  display: flex;
+  align-items: start;
+  margin: 22px 0 0;
+  color: #29463f;
+}
+.price small {
+  font-size: 13px;
+  margin: 9px 5px 0 0;
+}
+.price strong {
+  font: 700 48px Manrope;
+  line-height: 1;
+}
+.price span {
+  font-size: 12px;
+  color: #77847f;
+  align-self: end;
+  margin-bottom: 6px;
+}
+.price-note {
+  display: block;
+  color: #8a9692;
+  margin: 5px 0 23px;
+}
+.pricing-card ul {
+  border-top: 1px solid #e8ece9;
+  padding-top: 20px;
+}
+.pricing-card li svg {
+  width: 17px;
+  color: #4e806f;
+}
+.price-button {
+  width: 100%;
+  justify-content: center;
+  margin: 22px 0 12px;
+}
+.pricing-card > small:last-child {
+  display: block;
+  text-align: center;
+  color: #8b9692;
+}
+.faq-section {
+  padding: 100px 24px;
+  background: #fff;
+}
+.faq-list {
+  max-width: 760px;
+  margin: 45px auto 0;
+  border-top: 1px solid #dfe6e2;
+}
+.faq-list details {
+  border-bottom: 1px solid #dfe6e2;
+  padding: 20px 5px;
+}
+.faq-list summary {
+  cursor: pointer;
+  font: 700 15px Manrope;
+  color: #324a44;
+  list-style: none;
+  position: relative;
+  padding-right: 30px;
+}
+.faq-list summary::-webkit-details-marker {
+  display: none;
+}
+.faq-list summary:after {
+  content: "+";
+  position: absolute;
+  right: 5px;
+  font-size: 20px;
+  color: #6f8d84;
+}
+.faq-list details[open] summary:after {
+  content: "−";
+}
+.faq-list p {
+  color: #72807c;
+  font-size: 13px;
+  line-height: 1.65;
+  margin: 12px 35px 0 0;
+}
 @media (max-width: 720px) {
+  .workflow-section,
+  .faq-section {
+    padding: 65px 18px;
+  }
+  .workflow-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .workflow-grid > i {
+    transform: rotate(90deg);
+    margin: auto;
+  }
+  .value-strip {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .value-strip > div {
+    border-right: 0;
+    border-bottom: 1px solid #ffffff20;
+    padding-bottom: 18px;
+  }
+  .value-strip > div:last-child {
+    padding: 0;
+  }
+  .pricing-section {
+    grid-template-columns: 1fr;
+    padding: 65px 18px;
+    gap: 35px;
+  }
+  .pricing-copy h2 {
+    font-size: 31px;
+  }
+  .pricing-card {
+    padding: 27px 22px;
+  }
+  .price strong {
+    font-size: 44px;
+  }
   .page-actions {
     flex-direction: column;
   }
