@@ -24,9 +24,24 @@ import {
   AlertCircle,
   CalendarClock,
   TrendingUp,
+  BarChart3,
+  Building2,
+  Globe2,
+  LockKeyhole,
+  LogOut,
+  ShieldCheck,
+  UserRoundCheck,
 } from "lucide-react";
 
-type View = "inicio" | "agenda" | "pacientes" | "financeiro" | "configuracoes";
+type View =
+  | "inicio"
+  | "agenda"
+  | "pacientes"
+  | "financeiro"
+  | "configuracoes"
+  | "administracao";
+type AccessScreen = "landing" | "login" | "two-factor" | "app";
+type UserRole = "professional" | "admin";
 type CalendarView = "Dia" | "Semana" | "Mês";
 type CalendarBlock = {
   id: number;
@@ -301,7 +316,387 @@ function Countdown({ appointment }: { appointment: Appointment }) {
   );
 }
 
+function PublicLanding({ onLogin }: { onLogin: () => void }) {
+  return (
+    <div className="public-site">
+      <nav className="public-nav">
+        <a className="public-brand" href="#inicio">
+          <span>
+            <Sparkles size={20} />
+          </span>
+          <strong>Sereno</strong>
+        </a>
+        <div className="public-links">
+          <a href="#recursos">Recursos</a>
+          <a href="#seguranca">Segurança</a>
+          <a href="#sobre">Para quem é</a>
+        </div>
+        <button className="nav-login" onClick={onLogin}>
+          Entrar
+        </button>
+      </nav>
+
+      <main className="public-main" id="inicio">
+        <section className="hero-section">
+          <div className="hero-copy">
+            <span className="hero-badge">
+              <Sparkles size={14} /> Sua prática mais leve
+            </span>
+            <h1>
+              Mais presença no cuidado.
+              <br />
+              <em>Menos peso na gestão.</em>
+            </h1>
+            <p>
+              Agenda, pacientes e financeiro reunidos em um espaço simples,
+              acolhedor e pensado para a rotina de psicólogos.
+            </p>
+            <div className="hero-actions">
+              <button className="landing-primary" onClick={onLogin}>
+                Acessar demonstração <ArrowRight size={18} />
+              </button>
+              <a href="#recursos">Conhecer recursos</a>
+            </div>
+            <div className="trust-row">
+              <span>
+                <CheckCircle2 size={16} /> Feito para psicólogos
+              </span>
+              <span>
+                <ShieldCheck size={16} /> Acesso protegido
+              </span>
+              <span>
+                <Clock3 size={16} /> Configuração simples
+              </span>
+            </div>
+          </div>
+          <div className="hero-product" aria-label="Prévia da agenda Sereno">
+            <div className="product-top">
+              <span>
+                <Sparkles size={16} /> Sereno
+              </span>
+              <i>Kamilla CE</i>
+            </div>
+            <div className="product-title">
+              <div>
+                <small>QUINTA-FEIRA, 20 DE AGOSTO</small>
+                <strong>Bom dia, Kamilla.</strong>
+              </div>
+              <button>
+                <Plus size={15} /> Novo atendimento
+              </button>
+            </div>
+            <div className="product-stats">
+              <span>
+                <b>5</b> Hoje
+              </span>
+              <span>
+                <b>4</b> Confirmados
+              </span>
+              <span>
+                <b>1</b> Aguardando
+              </span>
+            </div>
+            <div className="product-agenda">
+              <small>PRÓXIMOS ATENDIMENTOS</small>
+              {[
+                ["09:00", "Marina Alves", "Confirmado"],
+                ["11:00", "Lucas Ribeiro", "Aguardando"],
+                ["15:00", "Clara Mendes", "Confirmado"],
+              ].map((item) => (
+                <div key={item[0]}>
+                  <b>{item[0]}</b>
+                  <span>
+                    <strong>{item[1]}</strong>
+                    <small>Online · 50 minutos</small>
+                  </span>
+                  <i>{item[2]}</i>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="landing-section" id="recursos">
+          <div className="section-heading">
+            <span>UMA ROTINA MAIS SERENA</span>
+            <h2>O essencial em um só lugar</h2>
+            <p>
+              Ferramentas administrativas que acompanham o seu jeito de
+              trabalhar.
+            </p>
+          </div>
+          <div className="feature-grid">
+            <article>
+              <span>
+                <CalendarDays />
+              </span>
+              <h3>Agenda inteligente</h3>
+              <p>
+                Visualize dia, semana ou mês, bloqueie horários e organize
+                sessões de 50 minutos.
+              </p>
+            </article>
+            <article>
+              <span>
+                <UsersRound />
+              </span>
+              <h3>Gestão de pacientes</h3>
+              <p>
+                Informações administrativas, responsáveis e links de atendimento
+                sempre acessíveis.
+              </p>
+            </article>
+            <article>
+              <span>
+                <WalletCards />
+              </span>
+              <h3>Financeiro simples</h3>
+              <p>
+                Acompanhe pagamentos e pendências sem transformar o cuidado em
+                burocracia.
+              </p>
+            </article>
+            <article>
+              <span>
+                <Video />
+              </span>
+              <h3>Atendimento online</h3>
+              <p>
+                Organize a sala individual e prepare o envio pelo WhatsApp em
+                poucos cliques.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section className="security-band" id="seguranca">
+          <div className="security-icon">
+            <ShieldCheck />
+          </div>
+          <div>
+            <span>SEGURANÇA DESDE O INÍCIO</span>
+            <h2>Privacidade faz parte do cuidado.</h2>
+            <p>
+              Acesso em duas etapas, perfis separados e uma administração que
+              respeita os limites entre operação e informações dos pacientes.
+            </p>
+          </div>
+          <ul>
+            <li>
+              <Check /> Autenticação em dois fatores
+            </li>
+            <li>
+              <Check /> Controle por perfil de acesso
+            </li>
+            <li>
+              <Check /> Registro de atividades administrativas
+            </li>
+          </ul>
+        </section>
+
+        <section className="audience-section" id="sobre">
+          <span>CONSTRUÍDO PARA CRESCER COM VOCÊ</span>
+          <h2>
+            Comece com sua prática.
+            <br />
+            Evolua no seu tempo.
+          </h2>
+          <p>
+            O Sereno nasce para a rotina de uma psicóloga e está sendo preparado
+            para apoiar clínicas e outros profissionais no futuro.
+          </p>
+          <button className="landing-primary" onClick={onLogin}>
+            Entrar no Sereno <ArrowRight size={18} />
+          </button>
+        </section>
+      </main>
+      <footer className="public-footer">
+        <a className="public-brand" href="#inicio">
+          <span>
+            <Sparkles size={18} />
+          </span>
+          <strong>Sereno</strong>
+        </a>
+        <p>Gestão acolhedora para psicólogos.</p>
+        <small>Protótipo em desenvolvimento · 2026</small>
+      </footer>
+    </div>
+  );
+}
+
+function AccessPage({
+  step,
+  email,
+  setEmail,
+  password,
+  setPassword,
+  code,
+  setCode,
+  error,
+  onBack,
+  onLogin,
+  onVerify,
+}: {
+  step: "login" | "two-factor";
+  email: string;
+  setEmail: (value: string) => void;
+  password: string;
+  setPassword: (value: string) => void;
+  code: string;
+  setCode: (value: string) => void;
+  error: string;
+  onBack: () => void;
+  onLogin: (event: React.FormEvent) => void;
+  onVerify: (event: React.FormEvent) => void;
+}) {
+  return (
+    <div className="access-page">
+      <div className="access-aside">
+        <a
+          className="public-brand"
+          href="#"
+          onClick={(event) => {
+            event.preventDefault();
+            onBack();
+          }}
+        >
+          <span>
+            <Sparkles size={20} />
+          </span>
+          <strong>Sereno</strong>
+        </a>
+        <div>
+          <span className="eyebrow">GESTÃO COM LEVEZA</span>
+          <h2>
+            Seu consultório organizado.
+            <br />
+            Sua atenção no cuidado.
+          </h2>
+          <p>Um ambiente tranquilo para acompanhar a rotina profissional.</p>
+        </div>
+        <blockquote>
+          “A tecnologia deve liberar tempo para aquilo que realmente importa: a
+          presença.”
+        </blockquote>
+      </div>
+      <div className="access-content">
+        <button className="access-back" onClick={onBack}>
+          <ChevronLeft size={17} /> Voltar
+        </button>
+        {step === "login" ? (
+          <form className="access-card" onSubmit={onLogin}>
+            <span className="access-icon">
+              <LockKeyhole />
+            </span>
+            <h1>Bem-vindo de volta</h1>
+            <p>Entre com seus dados para acessar o Sereno.</p>
+            <label>
+              E-mail profissional
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="seu@email.com"
+                required
+                autoFocus
+              />
+            </label>
+            <label>
+              Senha
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Sua senha"
+                required
+              />
+            </label>
+            {error && (
+              <div className="access-error">
+                <AlertCircle size={16} />
+                {error}
+              </div>
+            )}
+            <button className="access-submit">
+              Continuar <ArrowRight size={18} />
+            </button>
+            <div className="demo-access">
+              <strong>Acessos de demonstração</strong>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("kamilla@sereno.app");
+                  setPassword("sereno123");
+                }}
+              >
+                Profissional: kamilla@sereno.app · sereno123
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("admin@sereno.app");
+                  setPassword("admin123");
+                }}
+              >
+                Administrador: admin@sereno.app · admin123
+              </button>
+            </div>
+          </form>
+        ) : (
+          <form className="access-card code-card" onSubmit={onVerify}>
+            <span className="access-icon">
+              <ShieldCheck />
+            </span>
+            <h1>Confirme que é você</h1>
+            <p>
+              Digite o código de seis números enviado ao seu dispositivo seguro.
+            </p>
+            <label>
+              Código de verificação
+              <input
+                className="code-input"
+                inputMode="numeric"
+                maxLength={6}
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                placeholder="000000"
+                required
+                autoFocus
+              />
+            </label>
+            {error && (
+              <div className="access-error">
+                <AlertCircle size={16} />
+                {error}
+              </div>
+            )}
+            <button className="access-submit">
+              Verificar e entrar <ShieldCheck size={18} />
+            </button>
+            <div className="demo-code">
+              Código desta demonstração: <strong>482731</strong>
+            </div>
+            <button type="button" className="text-button" onClick={onBack}>
+              Usar outra conta
+            </button>
+          </form>
+        )}
+        <small className="prototype-note">
+          <ShieldCheck size={14} /> Ambiente de demonstração. O envio real do
+          código será ativado na versão hospedada.
+        </small>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
+  const [accessScreen, setAccessScreen] = useState<AccessScreen>("landing");
+  const [userRole, setUserRole] = useState<UserRole>("professional");
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [accessError, setAccessError] = useState("");
   const [view, setView] = useState<View>("inicio");
   const [mobileMenu, setMobileMenu] = useState(false);
   const [modal, setModal] = useState(false);
@@ -542,6 +937,71 @@ export default function App() {
     notify("Configurações salvas");
   }
 
+  function beginLogin(event: React.FormEvent) {
+    event.preventDefault();
+    const professional =
+      loginEmail.toLowerCase() === "kamilla@sereno.app" &&
+      loginPassword === "sereno123";
+    const administrator =
+      loginEmail.toLowerCase() === "admin@sereno.app" &&
+      loginPassword === "admin123";
+    if (!professional && !administrator) {
+      setAccessError(
+        "E-mail ou senha não conferem. Use um dos acessos de demonstração.",
+      );
+      return;
+    }
+    setUserRole(administrator ? "admin" : "professional");
+    setAccessError("");
+    setVerificationCode("");
+    setAccessScreen("two-factor");
+  }
+
+  function verifyAccess(event: React.FormEvent) {
+    event.preventDefault();
+    if (verificationCode !== "482731") {
+      setAccessError("Código incorreto. Para esta demonstração, use 482731.");
+      return;
+    }
+    setAccessError("");
+    setView(userRole === "admin" ? "administracao" : "inicio");
+    setAccessScreen("app");
+  }
+
+  function logout() {
+    setAccessScreen("landing");
+    setView("inicio");
+    setLoginEmail("");
+    setLoginPassword("");
+    setVerificationCode("");
+    setAccessError("");
+  }
+
+  if (accessScreen === "landing") {
+    return <PublicLanding onLogin={() => setAccessScreen("login")} />;
+  }
+
+  if (accessScreen === "login" || accessScreen === "two-factor") {
+    return (
+      <AccessPage
+        step={accessScreen}
+        email={loginEmail}
+        setEmail={setLoginEmail}
+        password={loginPassword}
+        setPassword={setLoginPassword}
+        code={verificationCode}
+        setCode={setVerificationCode}
+        error={accessError}
+        onBack={() => {
+          setAccessError("");
+          setAccessScreen(accessScreen === "two-factor" ? "login" : "landing");
+        }}
+        onLogin={beginLogin}
+        onVerify={verifyAccess}
+      />
+    );
+  }
+
   return (
     <div className="app-shell">
       <aside className={`sidebar ${mobileMenu ? "open" : ""}`}>
@@ -558,37 +1018,54 @@ export default function App() {
           <X />
         </button>
         <nav>
-          {nav.map((item) => (
+          {userRole === "professional" &&
+            nav.map((item) => (
+              <button
+                key={item.id}
+                className={view === item.id ? "active" : ""}
+                onClick={() => {
+                  setView(item.id);
+                  setMobileMenu(false);
+                }}
+              >
+                <item.icon size={19} />
+                {item.label}
+              </button>
+            ))}
+          {userRole === "admin" && (
             <button
-              key={item.id}
-              className={view === item.id ? "active" : ""}
-              onClick={() => {
-                setView(item.id);
-                setMobileMenu(false);
-              }}
+              className={view === "administracao" ? "active" : ""}
+              onClick={() => setView("administracao")}
             >
-              <item.icon size={19} />
-              {item.label}
+              <ShieldCheck size={19} /> Administração
             </button>
-          ))}
+          )}
         </nav>
         <div className="sidebar-bottom">
-          <button
-            onClick={() =>
-              notify(
-                "Integrações: Google e Microsoft serão conectados na versão online",
-              )
-            }
-          >
-            <Link2 size={19} />
-            Integrações<span className="soon">Em breve</span>
-          </button>
-          <button
-            className={view === "configuracoes" ? "active" : ""}
-            onClick={() => setView("configuracoes")}
-          >
-            <Settings size={19} />
-            Configurações
+          {userRole === "professional" && (
+            <button
+              onClick={() =>
+                notify(
+                  "Integrações: Google e Microsoft serão conectados na versão online",
+                )
+              }
+            >
+              <Link2 size={19} />
+              Integrações<span className="soon">Em breve</span>
+            </button>
+          )}
+          {userRole === "professional" && (
+            <button
+              className={view === "configuracoes" ? "active" : ""}
+              onClick={() => setView("configuracoes")}
+            >
+              <Settings size={19} />
+              Configurações
+            </button>
+          )}
+          <button onClick={logout}>
+            <LogOut size={19} />
+            Sair com segurança
           </button>
           <div className="help-card">
             <MessageCircle size={22} />
@@ -612,36 +1089,42 @@ export default function App() {
           <button className="menu-mobile" onClick={() => setMobileMenu(true)}>
             <Menu />
           </button>
-          <div className="search">
-            <Search size={18} />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar pacientes..."
-            />
-            {results.length > 0 && (
-              <div className="search-results">
-                {results.map((name) => (
-                  <button
-                    key={name}
-                    onClick={() => {
-                      setPatientToOpen(name);
-                      setPatientOpenNonce((value) => value + 1);
-                      setView("pacientes");
-                      setSearch("");
-                      notify(`${name} encontrado`);
-                    }}
-                  >
-                    <div className="avatar soft">{initials(name)}</div>
-                    <span>
-                      <strong>{name}</strong>
-                      <small>Abrir cadastro administrativo</small>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          {userRole === "professional" ? (
+            <div className="search">
+              <Search size={18} />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar pacientes..."
+              />
+              {results.length > 0 && (
+                <div className="search-results">
+                  {results.map((name) => (
+                    <button
+                      key={name}
+                      onClick={() => {
+                        setPatientToOpen(name);
+                        setPatientOpenNonce((value) => value + 1);
+                        setView("pacientes");
+                        setSearch("");
+                        notify(`${name} encontrado`);
+                      }}
+                    >
+                      <div className="avatar soft">{initials(name)}</div>
+                      <span>
+                        <strong>{name}</strong>
+                        <small>Abrir cadastro administrativo</small>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="admin-header-label">
+              <ShieldCheck size={18} /> Central administrativa
+            </div>
+          )}
           <div className="header-actions">
             <button
               className="icon-button"
@@ -654,12 +1137,24 @@ export default function App() {
             </button>
             <div
               className="profile"
-              onClick={() => notify("Perfil de Kamilla Campos Eugenio")}
+              onClick={() =>
+                notify(
+                  userRole === "admin"
+                    ? "Perfil administrador de Paulo"
+                    : "Perfil de Kamilla Campos Eugenio",
+                )
+              }
             >
-              <div className="avatar">KC</div>
+              <div className="avatar">{userRole === "admin" ? "PE" : "KC"}</div>
               <div>
-                <strong>Kamilla Campos Eugenio</strong>
-                <span>Psicóloga</span>
+                <strong>
+                  {userRole === "admin"
+                    ? "Paulo Eugenio"
+                    : "Kamilla Campos Eugenio"}
+                </strong>
+                <span>
+                  {userRole === "admin" ? "Administrador" : "Psicóloga"}
+                </span>
               </div>
             </div>
           </div>
@@ -707,6 +1202,7 @@ export default function App() {
           {view === "configuracoes" && (
             <SettingsPage settings={settings} save={saveSettings} />
           )}
+          {view === "administracao" && <AdminArea notify={notify} />}
         </div>
       </main>
       {modal && (
@@ -1624,6 +2120,340 @@ function Agenda({
         </div>
       )}
     </>
+  );
+}
+
+function AdminArea({ notify }: { notify: (message: string) => void }) {
+  const [professionals, setProfessionals] = useState([
+    {
+      name: "Kamilla Campos Eugenio",
+      email: "kamilla@sereno.app",
+      plan: "Fundador",
+      status: "Ativo",
+      lastAccess: "Hoje, 09:42",
+    },
+    {
+      name: "Conta de demonstração",
+      email: "demo@sereno.app",
+      plan: "Teste",
+      status: "Convite",
+      lastAccess: "Nunca acessou",
+    },
+  ]);
+  const [tab, setTab] = useState<"visao" | "profissionais" | "auditoria">(
+    "visao",
+  );
+  const [inviteModal, setInviteModal] = useState(false);
+  const [invite, setInvite] = useState({ name: "", email: "" });
+
+  function addProfessional(event: React.FormEvent) {
+    event.preventDefault();
+    if (!invite.name.trim() || !invite.email.trim()) return;
+    setProfessionals([
+      ...professionals,
+      {
+        name: invite.name.trim(),
+        email: invite.email.trim(),
+        plan: "Teste",
+        status: "Convite",
+        lastAccess: "Nunca acessou",
+      },
+    ]);
+    setInvite({ name: "", email: "" });
+    setInviteModal(false);
+    notify("Convite de demonstração criado");
+  }
+
+  return (
+    <div className="admin-area">
+      <section className="page-title admin-title">
+        <div>
+          <span className="eyebrow">CENTRAL DO SERENO</span>
+          <h1>Administração</h1>
+          <p>
+            Uma visão segura da operação, sem acesso ao conteúdo dos pacientes.
+          </p>
+        </div>
+        <button className="primary" onClick={() => setInviteModal(true)}>
+          <Plus size={18} /> Convidar profissional
+        </button>
+      </section>
+      <div className="admin-tabs">
+        {(
+          [
+            ["visao", "Visão geral"],
+            ["profissionais", "Profissionais"],
+            ["auditoria", "Auditoria"],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            className={tab === id ? "active" : ""}
+            onClick={() => setTab(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "visao" && (
+        <>
+          <section className="admin-metrics">
+            <article>
+              <span className="metric-icon">
+                <UserRoundCheck />
+              </span>
+              <div>
+                <small>PROFISSIONAIS</small>
+                <strong>{professionals.length}</strong>
+                <p>1 conta ativa</p>
+              </div>
+            </article>
+            <article>
+              <span className="metric-icon blue">
+                <Building2 />
+              </span>
+              <div>
+                <small>ORGANIZAÇÕES</small>
+                <strong>1</strong>
+                <p>Ambiente Sereno</p>
+              </div>
+            </article>
+            <article>
+              <span className="metric-icon amber">
+                <TrendingUp />
+              </span>
+              <div>
+                <small>RECEITA MENSAL</small>
+                <strong>R$ 0</strong>
+                <p>Fase de demonstração</p>
+              </div>
+            </article>
+            <article>
+              <span className="metric-icon purple">
+                <ShieldCheck />
+              </span>
+              <div>
+                <small>SEGURANÇA</small>
+                <strong>2FA</strong>
+                <p>Ativo no acesso</p>
+              </div>
+            </article>
+          </section>
+          <section className="admin-columns">
+            <article className="admin-panel">
+              <div className="panel-heading">
+                <div>
+                  <span>ATIVIDADE</span>
+                  <h2>Crescimento do Sereno</h2>
+                </div>
+                <BarChart3 />
+              </div>
+              <div className="growth-chart">
+                {[28, 35, 31, 48, 55, 68, 74, 82].map((height, index) => (
+                  <i key={index} style={{ height: `${height}%` }} />
+                ))}
+              </div>
+              <div className="chart-labels">
+                <span>Jan</span>
+                <span>Fev</span>
+                <span>Mar</span>
+                <span>Abr</span>
+                <span>Mai</span>
+                <span>Jun</span>
+                <span>Jul</span>
+                <span>Ago</span>
+              </div>
+            </article>
+            <article className="admin-panel">
+              <div className="panel-heading">
+                <div>
+                  <span>AMBIENTE</span>
+                  <h2>Estado dos serviços</h2>
+                </div>
+                <Globe2 />
+              </div>
+              <div className="service-list">
+                <div>
+                  <i className="online" />
+                  <span>
+                    <strong>Aplicação web</strong>
+                    <small>Operacional</small>
+                  </span>
+                  <b>99,9%</b>
+                </div>
+                <div>
+                  <i className="online" />
+                  <span>
+                    <strong>Armazenamento local</strong>
+                    <small>Operacional</small>
+                  </span>
+                  <b>Local</b>
+                </div>
+                <div>
+                  <i className="planned" />
+                  <span>
+                    <strong>Envio de notificações</strong>
+                    <small>Planejado</small>
+                  </span>
+                  <b>Em breve</b>
+                </div>
+              </div>
+            </article>
+          </section>
+          <section className="admin-privacy">
+            <ShieldCheck />
+            <div>
+              <strong>Administração com privacidade</strong>
+              <p>
+                Esta central mostra contas e operação da plataforma.
+                Prontuários, anotações e conteúdo de pacientes não aparecem para
+                administradores.
+              </p>
+            </div>
+          </section>
+        </>
+      )}
+
+      {tab === "profissionais" && (
+        <section className="admin-panel professional-panel">
+          <div className="panel-heading">
+            <div>
+              <span>CONTAS</span>
+              <h2>Profissionais cadastrados</h2>
+            </div>
+            <button className="secondary" onClick={() => setInviteModal(true)}>
+              <Plus size={16} />
+              Novo convite
+            </button>
+          </div>
+          <div className="professional-table">
+            <div className="table-head">
+              <span>Profissional</span>
+              <span>Plano</span>
+              <span>Status</span>
+              <span>Último acesso</span>
+              <span></span>
+            </div>
+            {professionals.map((person) => (
+              <div className="table-row" key={person.email}>
+                <span className="person-cell">
+                  <i>{initials(person.name)}</i>
+                  <span>
+                    <strong>{person.name}</strong>
+                    <small>{person.email}</small>
+                  </span>
+                </span>
+                <span>{person.plan}</span>
+                <span>
+                  <b className={`admin-status ${person.status.toLowerCase()}`}>
+                    {person.status}
+                  </b>
+                </span>
+                <span>{person.lastAccess}</span>
+                <button
+                  onClick={() =>
+                    notify(`Opções administrativas de ${person.name}`)
+                  }
+                >
+                  •••
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {tab === "auditoria" && (
+        <section className="admin-panel audit-panel">
+          <div className="panel-heading">
+            <div>
+              <span>SEGURANÇA</span>
+              <h2>Atividades administrativas</h2>
+            </div>
+            <ShieldCheck />
+          </div>
+          {[
+            [
+              "Login com autenticação em duas etapas",
+              "Paulo Eugenio",
+              "Hoje, agora",
+            ],
+            [
+              "Configurações profissionais atualizadas",
+              "Kamilla Campos Eugenio",
+              "Ontem, 18:14",
+            ],
+            ["Primeiro ambiente Sereno criado", "Sistema", "13 ago, 21:32"],
+          ].map(([action, author, date]) => (
+            <div className="audit-row" key={action}>
+              <span>
+                <CheckCircle2 />
+              </span>
+              <div>
+                <strong>{action}</strong>
+                <small>{author}</small>
+              </div>
+              <time>{date}</time>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {inviteModal && (
+        <div
+          className="modal-backdrop"
+          onMouseDown={() => setInviteModal(false)}
+        >
+          <form
+            className="modal small-modal"
+            onSubmit={addProfessional}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div className="modal-head">
+              <div>
+                <span className="eyebrow">NOVO ACESSO</span>
+                <h2>Convidar profissional</h2>
+                <p>Crie uma conta de demonstração para um novo profissional.</p>
+              </div>
+              <button type="button" onClick={() => setInviteModal(false)}>
+                <X />
+              </button>
+            </div>
+            <label>
+              Nome completo
+              <input
+                value={invite.name}
+                onChange={(e) => setInvite({ ...invite, name: e.target.value })}
+                required
+                autoFocus
+              />
+            </label>
+            <label>
+              E-mail profissional
+              <input
+                type="email"
+                value={invite.email}
+                onChange={(e) =>
+                  setInvite({ ...invite, email: e.target.value })
+                }
+                required
+              />
+            </label>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setInviteModal(false)}
+              >
+                Cancelar
+              </button>
+              <button className="primary">Criar convite</button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
   );
 }
 
