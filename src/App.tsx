@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import professionalLightness from "./assets/sereno-professional-lightness.webp";
+import humanConnection from "./assets/sereno-human-connection.webp";
 import {
   Bell,
   CalendarDays,
@@ -476,6 +478,41 @@ function PublicLanding({
           </div>
         </section>
 
+        <section className="lifestyle-split">
+          <div className="lifestyle-image">
+            <img
+              src={professionalLightness}
+              alt="Profissional encerrando o trabalho com tranquilidade"
+              loading="lazy"
+            />
+          </div>
+          <div className="lifestyle-copy">
+            <span>LEVEZA TAMBÉM É PRODUTIVIDADE</span>
+            <h2>
+              Organize o consultório.
+              <br />E encerre o dia em paz.
+            </h2>
+            <p>
+              Quando agenda, cadastros e pagamentos estão no mesmo fluxo, sobra
+              menos preocupação para levar para casa.
+            </p>
+            <ul>
+              <li>
+                <CheckCircle2 /> Menos tarefas espalhadas
+              </li>
+              <li>
+                <CheckCircle2 /> Mais clareza sobre o dia
+              </li>
+              <li>
+                <CheckCircle2 /> Uma rotina que cabe na sua vida
+              </li>
+            </ul>
+            <a href="#planos">
+              Conhecer o Plano Fundador <ArrowRight size={17} />
+            </a>
+          </div>
+        </section>
+
         <section className="workflow-section" id="como-funciona">
           <div className="section-heading">
             <span>SIMPLES DESDE O PRIMEIRO ACESSO</span>
@@ -562,6 +599,25 @@ function PublicLanding({
               <Check /> Administração sem conteúdo clínico
             </li>
           </ul>
+        </section>
+
+        <section className="connection-story">
+          <img
+            src={humanConnection}
+            alt="Duas pessoas compartilhando um momento alegre"
+            loading="lazy"
+          />
+          <div>
+            <span>TECNOLOGIA NOS BASTIDORES</span>
+            <h2>Mais espaço para estar presente.</h2>
+            <p>
+              O Sereno cuida da organização administrativa para que a tecnologia
+              ocupe menos espaço — e as relações humanas, mais.
+            </p>
+            <a href="#planos">
+              Começar gratuitamente <ArrowRight size={17} />
+            </a>
+          </div>
         </section>
 
         <section className="pricing-section" id="planos">

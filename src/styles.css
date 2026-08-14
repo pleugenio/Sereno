@@ -2428,7 +2428,7 @@ header {
       rgba(25, 57, 50, 0.83) 35%,
       rgba(25, 57, 50, 0.1) 72%
     ),
-    url("./assets/sereno-people-hero.png") center 43% / cover no-repeat;
+    url("./assets/sereno-people-hero.webp") center 43% / cover no-repeat;
   color: #fff;
 }
 .audience-section > span {
@@ -3256,6 +3256,124 @@ header {
   max-width: 1120px;
   margin: auto;
 }
+.lifestyle-split {
+  max-width: 1120px;
+  margin: 100px auto;
+  display: grid;
+  grid-template-columns: 1.08fr 0.92fr;
+  gap: 70px;
+  align-items: center;
+  padding: 0 24px;
+}
+.lifestyle-image {
+  position: relative;
+}
+.lifestyle-image:before {
+  content: "";
+  position: absolute;
+  inset: 18px -18px -18px 18px;
+  background: #dfeae4;
+  border-radius: 24px;
+}
+.lifestyle-image img {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3/2;
+  object-fit: cover;
+  border-radius: 22px;
+  display: block;
+  box-shadow: 0 20px 55px #315f5620;
+}
+.lifestyle-copy > span,
+.connection-story > div > span {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: #6e8d83;
+  font-weight: 700;
+}
+.lifestyle-copy h2,
+.connection-story h2 {
+  font: 700 34px/1.25 Manrope;
+  color: #29443d;
+  margin: 12px 0;
+}
+.lifestyle-copy > p,
+.connection-story p {
+  color: #71807b;
+  line-height: 1.7;
+}
+.lifestyle-copy ul {
+  list-style: none;
+  padding: 8px 0 4px;
+  display: grid;
+  gap: 10px;
+}
+.lifestyle-copy li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #566a64;
+  font-size: 13px;
+}
+.lifestyle-copy li svg {
+  width: 17px;
+  color: #548072;
+}
+.lifestyle-copy > a,
+.connection-story a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #315f56;
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 13px;
+  margin-top: 14px;
+}
+.connection-story {
+  max-width: 1120px;
+  margin: 100px auto;
+  min-height: 440px;
+  position: relative;
+  border-radius: 24px;
+  overflow: hidden;
+}
+.connection-story > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.connection-story:after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(247, 249, 246, 0.98) 0%,
+    rgba(247, 249, 246, 0.94) 37%,
+    rgba(247, 249, 246, 0.18) 70%
+  );
+}
+.connection-story > div {
+  position: relative;
+  z-index: 1;
+  width: 48%;
+  padding: 82px 58px;
+}
+.connection-story h2 {
+  font-size: 36px;
+}
+.connection-story p {
+  max-width: 430px;
+}
+.connection-story a {
+  background: #315f56;
+  color: #fff;
+  padding: 12px 16px;
+  border-radius: 10px;
+}
 .workflow-grid {
   display: grid;
   grid-template-columns: 1fr auto 1fr auto 1fr;
@@ -3487,6 +3605,38 @@ header {
   margin: 12px 35px 0 0;
 }
 @media (max-width: 720px) {
+  .lifestyle-split {
+    grid-template-columns: 1fr;
+    margin: 65px auto;
+    gap: 42px;
+    padding: 0 18px;
+  }
+  .lifestyle-image:before {
+    inset: 10px -7px -10px 7px;
+  }
+  .lifestyle-copy h2,
+  .connection-story h2 {
+    font-size: 29px;
+  }
+  .connection-story {
+    margin: 65px 18px;
+    min-height: 570px;
+  }
+  .connection-story:after {
+    background: linear-gradient(
+      0deg,
+      rgba(247, 249, 246, 0.98) 0%,
+      rgba(247, 249, 246, 0.91) 48%,
+      rgba(247, 249, 246, 0.06) 80%
+    );
+  }
+  .connection-story > img {
+    object-position: 62% center;
+  }
+  .connection-story > div {
+    width: 100%;
+    padding: 300px 25px 30px;
+  }
   .audience-section {
     min-height: 560px;
     padding: 70px 24px;
@@ -3498,7 +3648,7 @@ header {
         rgba(24, 54, 47, 0.72) 48%,
         rgba(24, 54, 47, 0.08) 82%
       ),
-      url("./assets/sereno-people-hero.png") 62% center/cover no-repeat;
+      url("./assets/sereno-people-hero.webp") 62% center/cover no-repeat;
   }
   .audience-section h2 {
     font-size: 31px;
