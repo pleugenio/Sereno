@@ -2412,14 +2412,42 @@ header {
   width: 16px;
 }
 .audience-section {
-  text-align: center;
-  padding: 82px 24px 104px;
-  max-width: 720px;
-  margin: auto;
+  text-align: left;
+  padding: 110px max(24px, calc((100% - 1120px) / 2));
+  max-width: none;
+  min-height: 480px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(25, 57, 50, 0.94) 0%,
+      rgba(25, 57, 50, 0.83) 35%,
+      rgba(25, 57, 50, 0.1) 72%
+    ),
+    url("./assets/sereno-people-hero.png") center 43% / cover no-repeat;
+  color: #fff;
+}
+.audience-section > span {
+  color: #bad1c9;
+}
+.audience-section h2 {
+  color: #fff;
+  max-width: 600px;
+  font-size: 39px;
 }
 .audience-section p {
-  max-width: 650px;
-  margin: 0 auto 28px;
+  max-width: 510px;
+  margin: 0 0 28px;
+  color: #d2dfda;
+}
+.audience-section .landing-primary {
+  background: #fff;
+  color: #294d45;
+  box-shadow: 0 10px 26px #102e2745;
 }
 .public-footer {
   border-top: 1px solid #e1e7e3;
@@ -3459,6 +3487,22 @@ header {
   margin: 12px 35px 0 0;
 }
 @media (max-width: 720px) {
+  .audience-section {
+    min-height: 560px;
+    padding: 70px 24px;
+    justify-content: flex-end;
+    background:
+      linear-gradient(
+        0deg,
+        rgba(24, 54, 47, 0.96) 0%,
+        rgba(24, 54, 47, 0.72) 48%,
+        rgba(24, 54, 47, 0.08) 82%
+      ),
+      url("./assets/sereno-people-hero.png") 62% center/cover no-repeat;
+  }
+  .audience-section h2 {
+    font-size: 31px;
+  }
   .workflow-section,
   .faq-section {
     padding: 65px 18px;
