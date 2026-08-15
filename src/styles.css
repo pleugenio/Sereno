@@ -1217,7 +1217,31 @@ header {
   color: #294b44;
   margin: 3px;
 }
-.planning-title .secondary {
+.dashboard-planning {
+  margin-top: 18px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface, #fff);
+}
+.dashboard-planning-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 18px;
+}
+.dashboard-planning-head h2 {
+  margin: 4px 0;
+  color: #294b44;
+  font: 700 22px Manrope;
+}
+.dashboard-planning-head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.dashboard-planning-head .secondary {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -1232,7 +1256,7 @@ header {
   padding: 20px;
   border: 1px solid var(--line);
   border-radius: 16px;
-  background: var(--surface, #fff);
+  background: #fbfcfb;
 }
 .planning-list {
   margin-top: 7px;
@@ -1297,6 +1321,10 @@ header {
   font-size: 11px;
 }
 @media (max-width: 780px) {
+  .dashboard-planning-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
   .daily-planning-grid {
     grid-template-columns: 1fr;
   }

@@ -45,7 +45,6 @@ import {
 type View =
   | "inicio"
   | "agenda"
-  | "planejamento"
   | "pacientes"
   | "financeiro"
   | "configuracoes"
@@ -264,7 +263,6 @@ const initialProfiles: PatientProfile[] = [
 const nav = [
   { id: "inicio" as View, label: "Visão geral", icon: LayoutDashboard },
   { id: "agenda" as View, label: "Agenda", icon: CalendarDays },
-  { id: "planejamento" as View, label: "Hoje e amanhã", icon: CalendarClock },
   { id: "pacientes" as View, label: "Pacientes", icon: UsersRound },
   { id: "financeiro" as View, label: "Financeiro", icon: WalletCards },
 ];
@@ -1788,14 +1786,6 @@ export default function App() {
               appointments={appointments}
               profiles={profiles}
               setModal={setModal}
-              select={openAppointment}
-              go={setView}
-            />
-          )}
-          {view === "planejamento" && (
-            <DailyPlanning
-              appointments={appointments}
-              profiles={profiles}
               select={openAppointment}
               go={setView}
             />
@@ -4238,11 +4228,17 @@ function Overview({
           </p>
         </div>
       </section>
+      <DailyPlanningPanel
+        appointments={appointments}
+        profiles={profiles}
+        select={select}
+        go={go}
+      />
     </>
   );
 }
 
-function DailyPlanning({
+function DailyPlanningPanel({
   appointments,
   profiles,
   select,
@@ -4265,17 +4261,17 @@ function DailyPlanning({
   }));
 
   return (
-    <>
-      <section className="page-title serene-title planning-title">
+    <section className="dashboard-planning">
+      <div className="dashboard-planning-head">
         <div>
           <span className="eyebrow">PREPARAÇÃO DA ROTINA</span>
-          <h1>Hoje e amanhã</h1>
+          <h2>Hoje e amanhã</h2>
           <p>Antecipe salas, confirmações e detalhes das próximas sessões.</p>
         </div>
         <button className="secondary" onClick={() => go("agenda")}>
           <CalendarDays size={18} /> Ver agenda completa
         </button>
-      </section>
+      </div>
       <section className="daily-planning-grid">
         {days.map((group) => (
           <article className="planning-day" key={group.day}>
@@ -4328,7 +4324,7 @@ function DailyPlanning({
           </article>
         ))}
       </section>
-    </>
+    </section>
   );
 }
 

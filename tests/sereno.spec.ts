@@ -281,7 +281,6 @@ test("mostra hoje e amanhã como terceira opção de preparação", async ({
   page,
 }) => {
   await login(page);
-  await page.getByRole("button", { name: "Hoje e amanhã" }).click();
   await expect(
     page.getByRole("heading", { name: "Hoje e amanhã" }),
   ).toBeVisible();
