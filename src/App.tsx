@@ -94,6 +94,7 @@ type Appointment = {
   id: number;
   patient: string;
   day: number;
+  scheduledDate?: string;
   time: string;
   status: Status;
   mode: "Online" | "Presencial";
@@ -1116,7 +1117,7 @@ export default function App() {
   const [selected, setSelected] = useState<Appointment | null>(null);
   const [rescheduling, setRescheduling] = useState<Appointment | null>(null);
   const [rescheduleForm, setRescheduleForm] = useState({
-    day: 1,
+    date: "2026-08-17",
     time: "08:00",
   });
   const [closingSession, setClosingSession] = useState<Appointment | null>(
@@ -1348,15 +1349,26 @@ export default function App() {
   }
   function openRescheduling(appointment: Appointment) {
     setRescheduling(appointment);
-    setRescheduleForm({ day: appointment.day, time: appointment.time });
+    setRescheduleForm({
+      date:
+        appointment.scheduledDate ||
+        `2026-08-${dates[appointment.day - 1].padStart(2, "0")}`,
+      time: appointment.time,
+    });
   }
   function rescheduleAppointment(event: React.FormEvent) {
     event.preventDefault();
     if (!rescheduling) return;
+    const selectedDay = new Date(`${rescheduleForm.date}T12:00:00`).getDay();
+    if (selectedDay === 0 || selectedDay === 6) {
+      notify("Escolha um dia útil para remarcar a sessão");
+      return;
+    }
     updateAppointment(
       rescheduling.id,
       {
-        day: rescheduleForm.day,
+        day: selectedDay,
+        scheduledDate: rescheduleForm.date,
         time: rescheduleForm.time,
         status: "Aguardando",
       },
@@ -2121,7 +2133,10 @@ export default function App() {
                 <span className="eyebrow">PREPARAR SESSÃO</span>
                 <h2>{selected.patient}</h2>
                 <p>
-                  {weekdays[selected.day - 1]}, às {selected.time} · 50 minutos
+                  {selected.scheduledDate
+                    ? formatBrazilianDate(selected.scheduledDate)
+                    : weekdays[selected.day - 1]}
+                  , às {selected.time} · 50 minutos
                 </p>
               </div>
               <button onClick={() => setSelected(null)}>
@@ -2272,22 +2287,19 @@ export default function App() {
             </div>
             <div className="form-row">
               <label>
-                Dia
-                <select
-                  value={rescheduleForm.day}
+                Data
+                <input
+                  type="date"
+                  min="2026-08-14"
+                  value={rescheduleForm.date}
                   onChange={(event) =>
                     setRescheduleForm({
                       ...rescheduleForm,
-                      day: Number(event.target.value),
+                      date: event.target.value,
                     })
                   }
-                >
-                  {weekdays.map((day, index) => (
-                    <option key={day} value={index + 1}>
-                      {day}, {dates[index]} ago.
-                    </option>
-                  ))}
-                </select>
+                  required
+                />
               </label>
               <label>
                 Horário

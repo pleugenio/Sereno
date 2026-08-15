@@ -244,7 +244,7 @@ test("prepara sessão com remarcação e cancelamento organizados", async ({
   ).toBeVisible();
   await page.getByText("Outras ações").click();
   await page.getByRole("button", { name: "Remarcar sessão" }).click();
-  await page.getByLabel("Dia").selectOption("3");
+  await page.getByLabel("Data").fill("2026-08-19");
   await page.getByLabel("Horário").selectOption("11:00");
   await page.getByRole("button", { name: "Confirmar remarcação" }).click();
   await expect(
