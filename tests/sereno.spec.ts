@@ -246,6 +246,28 @@ test("fecha atendimento e organiza financeiro, recibo e registro documental", as
   await expect(page.getByText("Recibo marcado como emitido")).toBeVisible();
 });
 
+test("conclui pendência documental sem abrir preparação da sessão", async ({
+  page,
+}) => {
+  await login(page);
+  await page
+    .getByRole("button", { name: /Concluir registro documental de Beatriz/ })
+    .click();
+  await expect(page.getByText("PENDÊNCIA DOCUMENTAL")).toBeVisible();
+  await expect(
+    page.locator(".modal .eyebrow", { hasText: "PREPARAR SESSÃO" }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Marcar como concluído" }).click();
+  await expect(
+    page.getByText("Registro documental marcado como concluído"),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", {
+      name: /Concluir registro documental de Beatriz/,
+    }),
+  ).toHaveCount(0);
+});
+
 test("prepara sessão com remarcação e cancelamento organizados", async ({
   page,
 }) => {

@@ -1201,6 +1201,8 @@ export default function App() {
   const [modal, setModal] = useState(false);
   const [patientModal, setPatientModal] = useState(false);
   const [selected, setSelected] = useState<Appointment | null>(null);
+  const [documentationReview, setDocumentationReview] =
+    useState<Appointment | null>(null);
   const [sessionActionsOpen, setSessionActionsOpen] = useState(false);
   const [rescheduling, setRescheduling] = useState<Appointment | null>(null);
   const [rescheduleForm, setRescheduleForm] = useState({
@@ -1404,6 +1406,18 @@ export default function App() {
     save(next);
     setSelected(next.find((a) => a.id === id) || null);
     notify(message);
+  }
+  function completeDocumentationReview() {
+    if (!documentationReview) return;
+    save(
+      appointments.map((appointment) =>
+        appointment.id === documentationReview.id
+          ? { ...appointment, documentationStatus: "Concluído" }
+          : appointment,
+      ),
+    );
+    setDocumentationReview(null);
+    notify("Registro documental marcado como concluído");
   }
   function openClosingWorkflow(appointment: Appointment) {
     setClosingSession(appointment);
@@ -1977,6 +1991,7 @@ export default function App() {
               profiles={profiles}
               setModal={setModal}
               select={openAppointment}
+              reviewDocumentation={setDocumentationReview}
               go={setView}
             />
           )}
@@ -2293,6 +2308,61 @@ export default function App() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+      {documentationReview && (
+        <div
+          className="modal-backdrop"
+          onMouseDown={() => setDocumentationReview(null)}
+        >
+          <div
+            className="modal small-modal documentation-review-modal"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="modal-head">
+              <div>
+                <span className="eyebrow">PENDÊNCIA DOCUMENTAL</span>
+                <h2>{documentationReview.patient}</h2>
+                <p>
+                  Atendimento de{" "}
+                  {formatBrazilianDate(appointmentIsoDate(documentationReview))}
+                  , às {documentationReview.time}.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDocumentationReview(null)}
+              >
+                <X />
+              </button>
+            </div>
+            <div className="documentation-review-note">
+              <CheckCircle2 />
+              <div>
+                <strong>Confirme apenas depois de atualizar o registro</strong>
+                <p>
+                  Nesta etapa, o Sereno controla somente a pendência. Nenhum
+                  conteúdo clínico é armazenado neste campo.
+                </p>
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setDocumentationReview(null)}
+              >
+                Agora não
+              </button>
+              <button
+                type="button"
+                className="primary"
+                onClick={completeDocumentationReview}
+              >
+                <Check size={17} /> Marcar como concluído
+              </button>
+            </div>
+          </div>
         </div>
       )}
       {selected && (
@@ -4249,12 +4319,14 @@ function Overview({
   profiles,
   setModal,
   select,
+  reviewDocumentation,
   go,
 }: {
   appointments: Appointment[];
   profiles: PatientProfile[];
   setModal: (v: boolean) => void;
   select: (a: Appointment) => void;
+  reviewDocumentation: (appointment: Appointment) => void;
   go: (v: View) => void;
 }) {
   const nowKey = `${toIsoDate(new Date())}T${new Date().toTimeString().slice(0, 5)}`;
@@ -4365,7 +4437,7 @@ function Overview({
             <button
               className="decision-row"
               key={`documentation-${appointment.id}`}
-              onClick={() => select(appointment)}
+              onClick={() => reviewDocumentation(appointment)}
             >
               <span className="decision-icon mint">
                 <CheckCircle2 />
