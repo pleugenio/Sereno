@@ -2135,63 +2135,20 @@ export default function App() {
                 <CheckCircle2 size={17} />
                 Finalizar atendimento
               </button>
-              <button
-                className="secondary"
-                onClick={() =>
-                  updateAppointment(
-                    selected.id,
-                    { status: "Confirmado" },
-                    "Atendimento confirmado",
-                  )
-                }
-              >
-                Confirmar
-              </button>
-              <button
-                className="secondary"
-                onClick={() =>
-                  updateAppointment(
-                    selected.id,
-                    { status: "Realizado" },
-                    "Atendimento marcado como realizado",
-                  )
-                }
-              >
-                Realizado
-              </button>
-              <button
-                className="secondary"
-                onClick={() =>
-                  updateAppointment(
-                    selected.id,
-                    {
-                      paid: !selected.paid,
-                      paymentStatus: selected.paid ? "Pendente" : "Pago",
-                      paymentMethod: selected.paid ? undefined : "Pix",
-                      paymentDate: selected.paid
-                        ? undefined
-                        : new Date().toISOString().slice(0, 10),
-                    },
-                    selected.paid
-                      ? "Pagamento marcado como pendente"
-                      : "Pagamento registrado",
-                  )
-                }
-              >
-                {selected.paid ? "Marcar pendente" : "Registrar pagamento"}
-              </button>
-              <button
-                className="danger"
-                onClick={() =>
-                  updateAppointment(
-                    selected.id,
-                    { status: "Cancelado", paymentStatus: "Cancelado" },
-                    "Atendimento cancelado",
-                  )
-                }
-              >
-                Cancelar atendimento
-              </button>
+              {selected.status === "Aguardando" && (
+                <button
+                  className="secondary"
+                  onClick={() =>
+                    updateAppointment(
+                      selected.id,
+                      { status: "Confirmado" },
+                      "Presença confirmada",
+                    )
+                  }
+                >
+                  Confirmar presença
+                </button>
+              )}
             </div>
           </section>
         </div>

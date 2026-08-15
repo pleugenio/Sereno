@@ -2086,7 +2086,6 @@ header {
   overflow: auto;
 }
 .finish-session-button {
-  grid-column: 1 / -1;
   justify-content: center;
 }
 .closing-progress {
