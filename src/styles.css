@@ -2449,6 +2449,174 @@ header {
   color: #294d45;
   box-shadow: 0 10px 26px #102e2745;
 }
+.landing-outcomes {
+  width: min(1180px, calc(100% - 48px));
+  margin: -34px auto 0;
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border: 1px solid #dfe9e3;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 20px 50px rgba(35, 70, 59, 0.12);
+}
+.landing-outcomes article {
+  min-height: 112px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-right: 1px solid #e5ece8;
+}
+.landing-outcomes article:last-child {
+  border-right: 0;
+}
+.landing-outcomes article > span {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: #427663;
+  background: #eaf4ef;
+}
+.landing-outcomes article > span svg {
+  width: 21px;
+}
+.landing-outcomes article div {
+  display: grid;
+  gap: 4px;
+}
+.landing-outcomes strong {
+  color: #263f37;
+  font-size: 15px;
+}
+.landing-outcomes small {
+  color: #72837d;
+  line-height: 1.45;
+}
+
+.why-sereno {
+  padding: 105px 48px 95px;
+  background: #f7faf8;
+}
+.before-after-grid {
+  width: min(1000px, 100%);
+  margin: 45px auto 0;
+  display: grid;
+  grid-template-columns: 1fr 54px 1fr;
+  align-items: stretch;
+  gap: 14px;
+}
+.before-after-grid article {
+  padding: 30px;
+  border: 1px solid #e2e9e5;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 14px 35px rgba(39, 69, 59, 0.06);
+}
+.before-after-grid article > span {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+.before-card > span {
+  color: #a2746c;
+}
+.after-card {
+  border-color: #bfd9cd !important;
+  background: linear-gradient(145deg, #fff, #edf7f2) !important;
+}
+.after-card > span {
+  color: #3d7962;
+}
+.before-after-grid h3 {
+  margin: 8px 0 22px;
+  color: #253f36;
+  font-size: 22px;
+}
+.before-after-grid ul {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 15px;
+  list-style: none;
+}
+.before-after-grid li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #667a72;
+}
+.before-after-grid li svg {
+  width: 17px;
+  flex: 0 0 auto;
+}
+.before-card li svg {
+  color: #bd8178;
+}
+.after-card li svg {
+  color: #3f896c;
+}
+.change-arrow {
+  display: grid;
+  place-items: center;
+  color: #4d806d;
+}
+.change-arrow svg {
+  width: 25px;
+}
+
+.real-routine-proof {
+  width: min(1120px, calc(100% - 48px));
+  margin: 95px auto;
+  padding: 34px 38px;
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  border: 1px solid #d5e6de;
+  border-radius: 24px;
+  color: #f7fbf9;
+  background: linear-gradient(120deg, #264f41, #3e7562);
+  box-shadow: 0 20px 45px rgba(30, 70, 55, 0.18);
+}
+.proof-mark {
+  width: 62px;
+  height: 62px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  background: #ffffff18;
+}
+.proof-mark svg {
+  width: 28px;
+}
+.real-routine-proof span {
+  color: #bfe1d2;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+.real-routine-proof h2 {
+  margin: 6px 0 7px;
+  font-size: 22px;
+}
+.real-routine-proof p {
+  max-width: 720px;
+  margin: 0;
+  color: #d9e8e1;
+  line-height: 1.55;
+  font-size: 13px;
+}
+.real-routine-proof .landing-primary {
+  white-space: nowrap;
+  background: #f3d9ae;
+  color: #294d41;
+}
+
 .public-footer {
   border-top: 1px solid #e1e7e3;
   max-width: 1120px;
@@ -3605,6 +3773,39 @@ header {
   }
   .landing-section {
     padding: 65px 18px;
+  }
+  .landing-outcomes {
+    width: calc(100% - 36px);
+    margin-top: -32px;
+    grid-template-columns: 1fr;
+  }
+  .landing-outcomes article {
+    min-height: 92px;
+    padding: 18px;
+    border-right: 0;
+    border-bottom: 1px solid #e5ece8;
+  }
+  .landing-outcomes article:last-child {
+    border-bottom: 0;
+  }
+  .why-sereno {
+    padding: 70px 18px;
+  }
+  .before-after-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .change-arrow {
+    transform: rotate(90deg);
+  }
+  .real-routine-proof {
+    width: calc(100% - 36px);
+    margin: 65px auto;
+    padding: 27px 22px;
+    grid-template-columns: 1fr;
+  }
+  .real-routine-proof .landing-primary {
+    width: 100%;
   }
   .feature-grid {
     grid-template-columns: 1fr;

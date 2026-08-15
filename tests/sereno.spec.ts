@@ -20,7 +20,19 @@ test.beforeEach(async ({ page }) => {
 
 test("landing, cadastro trial e validações de acesso", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 1, name: /Menos tempo organizando/ }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      name: "Seu consultório não precisa funcionar no improviso",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      name: "Feito para ser simples desde o primeiro atendimento.",
+    }),
+  ).toBeVisible();
   await page
     .getByRole("button", { name: /Começar.*grátis/i })
     .first()

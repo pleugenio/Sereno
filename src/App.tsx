@@ -341,6 +341,7 @@ function PublicLanding({
           <strong>Sereno</strong>
         </a>
         <div className="public-links">
+          <a href="#por-que-sereno">Por que Sereno</a>
           <a href="#recursos">Recursos</a>
           <a href="#como-funciona">Como funciona</a>
           <a href="#seguranca">Segurança</a>
@@ -358,13 +359,14 @@ function PublicLanding({
               <Sparkles size={14} /> 15 dias grátis · sem cartão
             </span>
             <h1>
-              Seu consultório organizado.
+              Menos tempo organizando.
               <br />
-              <em>Sua mente mais tranquila.</em>
+              <em>Mais presença no cuidado.</em>
             </h1>
             <p>
-              Agenda, pacientes e financeiro em um sistema simples para você
-              economizar tempo e se concentrar em quem realmente importa.
+              Centralize agenda, pacientes e financeiro em uma rotina simples,
+              visual e pensada para psicólogos que atendem on-line ou
+              presencialmente.
             </p>
             <div className="hero-actions">
               <button className="landing-primary" onClick={onTrial}>
@@ -428,6 +430,82 @@ function PublicLanding({
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        <section className="landing-outcomes" aria-label="Benefícios do Sereno">
+          <article>
+            <span>
+              <Clock3 />
+            </span>
+            <div>
+              <strong>Ganhe clareza no dia</strong>
+              <small>Veja o que vem agora e o que precisa de atenção.</small>
+            </div>
+          </article>
+          <article>
+            <span>
+              <CalendarDays />
+            </span>
+            <div>
+              <strong>Organize sem planilhas</strong>
+              <small>Agenda, cadastros e pagamentos no mesmo fluxo.</small>
+            </div>
+          </article>
+          <article>
+            <span>
+              <ShieldCheck />
+            </span>
+            <div>
+              <strong>Comece com segurança</strong>
+              <small>Acesso em duas etapas e perfis separados.</small>
+            </div>
+          </article>
+        </section>
+
+        <section className="why-sereno" id="por-que-sereno">
+          <div className="section-heading">
+            <span>POR QUE O SERENO</span>
+            <h2>Seu consultório não precisa funcionar no improviso</h2>
+            <p>
+              Troque tarefas espalhadas por uma visão simples do que realmente
+              precisa ser feito.
+            </p>
+          </div>
+          <div className="before-after-grid">
+            <article className="before-card">
+              <span>ANTES</span>
+              <h3>A rotina fica espalhada</h3>
+              <ul>
+                <li>
+                  <X /> Horários no calendário e links nas conversas
+                </li>
+                <li>
+                  <X /> Pagamentos acompanhados de memória
+                </li>
+                <li>
+                  <X /> Dados administrativos difíceis de encontrar
+                </li>
+              </ul>
+            </article>
+            <div className="change-arrow">
+              <ArrowRight />
+            </div>
+            <article className="after-card">
+              <span>COM O SERENO</span>
+              <h3>Você enxerga a rotina inteira</h3>
+              <ul>
+                <li>
+                  <Check /> Agenda com dia, semana e mês
+                </li>
+                <li>
+                  <Check /> Financeiro ligado aos atendimentos
+                </li>
+                <li>
+                  <Check /> Cadastro e sala on-line por paciente
+                </li>
+              </ul>
+            </article>
           </div>
         </section>
 
@@ -605,6 +683,25 @@ function PublicLanding({
               <Check /> Administração sem conteúdo clínico
             </li>
           </ul>
+        </section>
+
+        <section className="real-routine-proof">
+          <div className="proof-mark">
+            <UsersRound />
+          </div>
+          <div>
+            <span>CONSTRUÍDO PERTO DA ROTINA REAL</span>
+            <h2>Feito para ser simples desde o primeiro atendimento.</h2>
+            <p>
+              O Sereno está sendo desenvolvido a partir da rotina de uma
+              psicóloga que atende on-line, com decisões práticas sobre sessões
+              de 50 minutos, sala por paciente, responsáveis e controle
+              financeiro.
+            </p>
+          </div>
+          <button className="landing-primary" onClick={onTrial}>
+            Experimentar gratuitamente <ArrowRight size={18} />
+          </button>
         </section>
 
         <section className="connection-story">
