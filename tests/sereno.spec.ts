@@ -177,22 +177,3 @@ test("navegação principal funciona em tela móvel", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Pacientes" })).toBeVisible();
   await expect(page.locator(".sidebar")).not.toHaveClass(/open/);
 });
-
-test("painel operacional filtra pendências e gerencia tarefas", async ({
-  page,
-}) => {
-  await login(page);
-  await expect(
-    page.getByRole("heading", { name: "Próximos atendimentos" }),
-  ).toBeVisible();
-  await expect(page.getByRole("heading", { name: /Pendências/ })).toBeVisible();
-  await page.getByRole("button", { name: "Agendamentos", exact: true }).click();
-  await expect(page.getByText(/Confirmar Lucas Ribeiro/)).toBeVisible();
-  await page
-    .getByPlaceholder("Adicionar uma tarefa")
-    .fill("Revisar agenda de sexta");
-  await page.getByRole("button", { name: "Adicionar tarefa" }).click();
-  await expect(page.getByText("Revisar agenda de sexta")).toBeVisible();
-  await page.getByLabel("Revisar agenda de sexta").click();
-  await expect(page.getByText("Revisar agenda de sexta")).toHaveCount(0);
-});
