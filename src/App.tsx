@@ -1057,9 +1057,23 @@ export default function App() {
       ),
     [appointments, extraPatients],
   );
-  const results = search.trim()
+  const normalizedSearch = search.trim().toLowerCase();
+  const numericSearch = normalizedSearch.replace(/\D/g, "");
+  const results = normalizedSearch
     ? patients
-        .filter((name) => name.toLowerCase().includes(search.toLowerCase()))
+        .filter((name) => {
+          const profile = profiles.find((item) => item.name === name);
+          const textFields = [name, profile?.email, profile?.address]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+          const numericFields =
+            `${profile?.phone || ""} ${profile?.cpf || ""}`.replace(/\D/g, "");
+          return (
+            textFields.includes(normalizedSearch) ||
+            (numericSearch.length > 0 && numericFields.includes(numericSearch))
+          );
+        })
         .slice(0, 5)
     : [];
   const confirmed = appointments.filter(
@@ -1122,8 +1136,9 @@ export default function App() {
     );
   }
   function openAppointment(a: Appointment) {
-    setSelected(a);
-    setMeetDraft(patientMeet(a));
+    const meetUrl = patientMeet(a);
+    setSelected({ ...a, meetUrl: meetUrl || undefined });
+    setMeetDraft(meetUrl);
   }
   function saveMeet() {
     if (!selected || !/^https:\/\/meet\.google\.com\//.test(meetDraft.trim())) {
@@ -1156,6 +1171,10 @@ export default function App() {
         ? profile.guardianPhone
         : profile?.phone;
     const phone = contactPhone?.replace(/\D/g, "") || "";
+    if (!phone) {
+      notify("Cadastre um telefone para enviar o link pelo WhatsApp");
+      return;
+    }
     const message = `Olá, ${a.patient.split(" ")[0]}! Segue o link do nosso atendimento de ${weekdays[a.day - 1].toLowerCase()}, às ${a.time}:\n\n${room}`;
     window.open(
       `https://wa.me/${phone.startsWith("55") ? phone : `55${phone}`}?text=${encodeURIComponent(message)}`,
@@ -1890,8 +1909,8 @@ export default function App() {
                   </button>
                 </div>
                 <p>
-                  Crie a sala, copie o endereço e salve-o aqui. Cada atendimento
-                  mantém seu próprio link.
+                  Crie a sala, copie o endereço e salve-o aqui. O link ficará
+                  associado a este paciente e poderá ser alterado depois.
                 </p>
               </div>
             )}
