@@ -294,36 +294,6 @@ function formatCpf(value: string) {
     .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
 }
 
-function Countdown({ appointment }: { appointment: Appointment }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 30000);
-    return () => window.clearInterval(timer);
-  }, []);
-  const [hour, minute] = appointment.time.split(":").map(Number);
-  const target = new Date(
-    2026,
-    7,
-    16 + appointment.day,
-    hour,
-    minute,
-  ).getTime();
-  const minutes = Math.floor((target - now) / 60000);
-  let label = "começa agora";
-  if (minutes > 1440) label = `em ${Math.floor(minutes / 1440)} dias`;
-  else if (minutes >= 60)
-    label = `em ${Math.floor(minutes / 60)}h ${minutes % 60}min`;
-  else if (minutes > 1) label = `em ${minutes} minutos`;
-  else if (minutes < -50) label = "atendimento encerrado";
-  else if (minutes < 0) label = "em andamento";
-  return (
-    <span className="countdown">
-      <Clock3 size={13} />
-      {label}
-    </span>
-  );
-}
-
 function PublicLanding({
   onLogin,
   onTrial,
@@ -3467,15 +3437,6 @@ function Overview({
   select: (a: Appointment) => void;
   go: (v: View) => void;
 }) {
-  const nextBase = appointments.find((a) => a.status === "Confirmado");
-  const next = nextBase
-    ? {
-        ...nextBase,
-        meetUrl:
-          profiles.find((p) => p.name === nextBase.patient)?.meetUrl ||
-          nextBase.meetUrl,
-      }
-    : undefined;
   const awaiting = appointments.filter((a) => a.status === "Aguardando");
   const overdue = appointments.filter(
     (a) =>
@@ -3485,6 +3446,30 @@ function Overview({
   const received = appointments
     .filter((a) => a.paid)
     .reduce((s, a) => s + (a.amount ?? 180), 0);
+  const [pendingFilter, setPendingFilter] = useState<
+    "Todos" | "Agendamentos" | "Financeiro"
+  >("Todos");
+  const [tasks, setTasks] = useState<string[]>([]);
+  const [taskDraft, setTaskDraft] = useState("");
+  const upcoming = [...appointments]
+    .filter((appointment) => appointment.status !== "Cancelado")
+    .sort((a, b) => a.day - b.day || a.time.localeCompare(b.time))
+    .slice(0, 5);
+  const birthdayCount = profiles.filter(
+    (profile) => profile.birthDate?.slice(5, 7) === "08",
+  ).length;
+  const visibleAwaiting =
+    pendingFilter === "Todos" || pendingFilter === "Agendamentos"
+      ? awaiting
+      : [];
+  const visibleOverdue =
+    pendingFilter === "Todos" || pendingFilter === "Financeiro" ? overdue : [];
+  function addTask(event: React.FormEvent) {
+    event.preventDefault();
+    if (!taskDraft.trim()) return;
+    setTasks([...tasks, taskDraft.trim()]);
+    setTaskDraft("");
+  }
   return (
     <>
       <section className="page-title serene-title">
@@ -3501,158 +3486,196 @@ function Overview({
           Novo atendimento
         </button>
       </section>
-      <section className="focus-layout">
-        <div className="attention-card">
-          <div className="section-label">
-            <span>
-              <Sparkles size={16} />
-              Para cuidar agora
-            </span>
-            <small>{awaiting.length + overdue.length} pendências</small>
-          </div>
-          {awaiting.slice(0, 2).map((a) => (
-            <button
-              className="decision-row"
-              key={a.id}
-              onClick={() => select(a)}
-            >
-              <span className="decision-icon amber">
-                <CalendarClock />
-              </span>
-              <span>
-                <strong>Confirmar atendimento de {a.patient}</strong>
-                <small>
-                  {weekdays[a.day - 1]}, {dates[a.day - 1]} de agosto às{" "}
-                  {a.time}
-                </small>
-              </span>
-              <ArrowRight />
-            </button>
-          ))}
-          {overdue.slice(0, 1).map((a) => (
-            <button
-              className="decision-row"
-              key={`pay-${a.id}`}
-              onClick={() => go("financeiro")}
-            >
-              <span className="decision-icon rose">
-                <CircleDollarSign />
-              </span>
-              <span>
-                <strong>Pagamento de {a.patient} está pendente</strong>
-                <small>
-                  {money(a.amount ?? 180)} · atendimento já realizado
-                </small>
-              </span>
-              <ArrowRight />
-            </button>
-          ))}
-          {awaiting.length === 0 && overdue.length === 0 && (
-            <div className="all-clear">
-              <CheckCircle2 />
-              <strong>Tudo resolvido por aqui.</strong>
-              <span>Você pode focar nos atendimentos.</span>
+      <section className="operational-dashboard">
+        <article className="dashboard-panel upcoming-panel">
+          <div className="dashboard-panel-head">
+            <div>
+              <span className="eyebrow">AGENDA</span>
+              <h2>Próximos atendimentos</h2>
             </div>
-          )}
-          <button className="quiet-link" onClick={() => go("agenda")}>
-            Ver agenda completa <ArrowRight size={15} />
-          </button>
-        </div>
-        <div className="day-card">
-          <div className="section-label">
-            <span>
-              <Clock3 size={16} />
-              Seu dia
-            </span>
-            <small>{appointments.length} na semana</small>
+            <button className="quiet-link" onClick={() => go("agenda")}>
+              Ver agenda <ArrowRight size={15} />
+            </button>
           </div>
-          {next ? (
-            <>
-              <div className="next-time">
-                <span>Próximo atendimento</span>
-                <strong>{next.time}</strong>
-                <small>
-                  até{" "}
-                  {String(Number(next.time.slice(0, 2)) + 1).padStart(2, "0")}:
-                  {next.time.endsWith(":00") ? "50" : "40"}
-                </small>
-                <Countdown appointment={next} />
-              </div>
-              <div className="next-person">
-                <div className="avatar soft">{initials(next.patient)}</div>
+          <div className="upcoming-list">
+            {upcoming.map((appointment) => (
+              <button
+                key={appointment.id}
+                className="upcoming-row"
+                onClick={() => select(appointment)}
+              >
+                <time>
+                  <strong>{appointment.time}</strong>
+                  <small>{weekdays[appointment.day - 1]}</small>
+                </time>
+                <span className="avatar soft">
+                  {initials(appointment.patient)}
+                </span>
+                <span className="upcoming-person">
+                  <strong>{appointment.patient}</strong>
+                  <small>{appointment.mode} · 50 minutos</small>
+                </span>
+                <span
+                  className={`appointment-status ${appointment.status.toLowerCase()}`}
+                >
+                  {appointment.status}
+                </span>
+                <ArrowRight size={17} />
+              </button>
+            ))}
+          </div>
+        </article>
+
+        <article className="dashboard-panel pending-panel">
+          <div className="dashboard-panel-head">
+            <div>
+              <span className="eyebrow">CENTRAL DE AÇÕES</span>
+              <h2>
+                Pendências <b>{awaiting.length + overdue.length}</b>
+              </h2>
+              <p>Somente o que precisa da sua atenção.</p>
+            </div>
+          </div>
+          <div className="pending-filters">
+            {(["Todos", "Agendamentos", "Financeiro"] as const).map(
+              (filter) => (
+                <button
+                  key={filter}
+                  className={pendingFilter === filter ? "active" : ""}
+                  onClick={() => setPendingFilter(filter)}
+                >
+                  {filter}
+                </button>
+              ),
+            )}
+          </div>
+          <div className="pending-list">
+            {visibleAwaiting.map((appointment) => (
+              <button key={appointment.id} onClick={() => select(appointment)}>
+                <span className="decision-icon amber">
+                  <CalendarClock />
+                </span>
                 <span>
-                  <strong>{next.patient}</strong>
+                  <strong>Confirmar {appointment.patient}</strong>
                   <small>
-                    <Video size={13} />
-                    {next.mode} ·{" "}
-                    {next.meetUrl ? "Sala pronta" : "Sala ainda não criada"}
+                    {weekdays[appointment.day - 1]},{" "}
+                    {dates[appointment.day - 1]} de agosto às {appointment.time}
                   </small>
                 </span>
+                <ArrowRight />
+              </button>
+            ))}
+            {visibleOverdue.map((appointment) => (
+              <button
+                key={`payment-${appointment.id}`}
+                onClick={() => go("financeiro")}
+              >
+                <span className="decision-icon rose">
+                  <CircleDollarSign />
+                </span>
+                <span>
+                  <strong>Pagamento de {appointment.patient}</strong>
+                  <small>
+                    {money(appointment.amount ?? 180)} · atendimento realizado
+                  </small>
+                </span>
+                <ArrowRight />
+              </button>
+            ))}
+            {visibleAwaiting.length === 0 && visibleOverdue.length === 0 && (
+              <div className="pending-empty">
+                <CheckCircle2 />
+                <strong>Nada pendente nesta categoria.</strong>
               </div>
-              <div className="next-actions">
-                {next.meetUrl ? (
-                  <a
-                    className="primary"
-                    href={next.meetUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <Video size={17} />
-                    Entrar na sala
-                  </a>
-                ) : (
-                  <button className="primary" onClick={() => select(next)}>
-                    <Plus size={17} />
-                    Preparar sala
-                  </button>
-                )}
-                <button className="secondary" onClick={() => select(next)}>
-                  Detalhes
-                </button>
-              </div>
-            </>
-          ) : (
-            <div className="all-clear">
-              <CheckCircle2 />
-              <strong>Dia livre</strong>
-              <span>Nenhum atendimento confirmado.</span>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        </article>
       </section>
-      <section className="calm-summary">
-        <div>
-          <span className="summary-icon">
-            <CheckCircle2 />
-          </span>
-          <p>
-            <strong>
-              {appointments.filter((a) => a.status === "Confirmado").length}{" "}
-              confirmados
-            </strong>
-            <small>sem ação necessária</small>
-          </p>
+
+      <section className="dashboard-bottom-grid">
+        <div className="dashboard-metrics">
+          <article>
+            <span className="summary-icon">
+              <CalendarDays />
+            </span>
+            <div>
+              <strong>{appointments.length}</strong>
+              <small>sessões no mês</small>
+            </div>
+          </article>
+          <article>
+            <span className="summary-icon">
+              <CheckCircle2 />
+            </span>
+            <div>
+              <strong>
+                {appointments.filter((a) => a.status === "Confirmado").length}
+              </strong>
+              <small>confirmadas</small>
+            </div>
+          </article>
+          <article>
+            <span className="summary-icon">
+              <TrendingUp />
+            </span>
+            <div>
+              <strong>{money(received)}</strong>
+              <small>recebidos</small>
+            </div>
+          </article>
+          <article>
+            <span className="summary-icon">
+              <Sparkles />
+            </span>
+            <div>
+              <strong>{birthdayCount}</strong>
+              <small>aniversariantes</small>
+            </div>
+          </article>
         </div>
-        <div>
-          <span className="summary-icon">
-            <TrendingUp />
-          </span>
-          <p>
-            <strong>{money(received)} recebidos</strong>
-            <small>neste demonstrativo</small>
-          </p>
-        </div>
-        <div>
-          <span className="summary-icon">
-            <AlertCircle />
-          </span>
-          <p>
-            <strong>
-              {appointments.filter((a) => !a.paid).length} a acompanhar
-            </strong>
-            <small>não significa atraso</small>
-          </p>
-        </div>
+        <article className="dashboard-panel task-panel">
+          <div className="dashboard-panel-head">
+            <div>
+              <span className="eyebrow">ORGANIZAÇÃO</span>
+              <h2>Tarefas</h2>
+            </div>
+            <small>{tasks.length} abertas</small>
+          </div>
+          <form onSubmit={addTask}>
+            <input
+              value={taskDraft}
+              onChange={(event) => setTaskDraft(event.target.value)}
+              placeholder="Adicionar uma tarefa"
+            />
+            <button className="primary" aria-label="Adicionar tarefa">
+              <Plus size={18} />
+            </button>
+          </form>
+          <div className="task-list">
+            {tasks.map((task, index) => (
+              <label key={`${task}-${index}`}>
+                <input
+                  type="checkbox"
+                  onChange={() =>
+                    setTasks(
+                      tasks.filter((_, itemIndex) => itemIndex !== index),
+                    )
+                  }
+                />
+                <span>{task}</span>
+              </label>
+            ))}
+            {tasks.length === 0 && (
+              <div className="task-empty">
+                <CheckCircle2 />
+                <span>
+                  <strong>Nenhuma tarefa aberta.</strong>
+                  <small>Use o campo acima para organizar um lembrete.</small>
+                </span>
+              </div>
+            )}
+          </div>
+        </article>
       </section>
     </>
   );
