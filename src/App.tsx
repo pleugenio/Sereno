@@ -55,6 +55,7 @@ type CalendarView = "Dia" | "Semana" | "Mês";
 type CalendarBlock = {
   id: number;
   day: number;
+  scheduledDate?: string;
   time: string;
   endTime: string;
   reason: string;
@@ -268,7 +269,70 @@ const nav = [
   { id: "financeiro" as View, label: "Financeiro", icon: WalletCards },
 ];
 const weekdays = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
-const dates = ["17", "18", "19", "20", "21"];
+const monthNames = [
+  "janeiro",
+  "fevereiro",
+  "março",
+  "abril",
+  "maio",
+  "junho",
+  "julho",
+  "agosto",
+  "setembro",
+  "outubro",
+  "novembro",
+  "dezembro",
+];
+function toIsoDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+function fromIsoDate(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day, 12);
+}
+function addCalendarDays(value: string, amount: number) {
+  const date = fromIsoDate(value);
+  date.setDate(date.getDate() + amount);
+  return toIsoDate(date);
+}
+function startOfCalendarWeek(offset = 0) {
+  const date = new Date();
+  const weekday = date.getDay();
+  const distanceToMonday = weekday === 0 ? -6 : 1 - weekday;
+  date.setDate(date.getDate() + distanceToMonday + offset * 7);
+  return toIsoDate(date);
+}
+function weekDate(day: number, offset = 0) {
+  return addCalendarDays(startOfCalendarWeek(offset), day - 1);
+}
+function legacyWeekDate(day: number) {
+  const currentDay = new Date().getDay();
+  return weekDate(day, currentDay === 0 || currentDay === 6 ? 1 : 0);
+}
+function nextBookableDate() {
+  const today = toIsoDate(new Date());
+  const day = new Date().getDay();
+  if (day === 6) return addCalendarDays(today, 2);
+  if (day === 0) return addCalendarDays(today, 1);
+  return today;
+}
+function dayFromIsoDate(value: string) {
+  return fromIsoDate(value).getDay();
+}
+function appointmentIsoDate(appointment: Appointment) {
+  return appointment.scheduledDate || legacyWeekDate(appointment.day);
+}
+function blockAppliesToDate(block: CalendarBlock, date: string) {
+  return block.recurring
+    ? block.day === dayFromIsoDate(date)
+    : (block.scheduledDate || legacyWeekDate(block.day)) === date;
+}
+function timeIsBlocked(block: CalendarBlock, time: string) {
+  return block.allDay || (time >= block.time && time < block.endTime);
+}
 const times = [
   "08:00",
   "09:00",
@@ -306,6 +370,14 @@ function formatBrazilianDate(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 8);
   return digits.replace(/(\d{2})(\d)/, "$1/$2").replace(/(\d{2})(\d)/, "$1/$2");
 }
+function formatCalendarDate(value: string, weekday = false) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    weekday: weekday ? "long" : undefined,
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(fromIsoDate(value));
+}
 
 function Countdown({ appointment }: { appointment: Appointment }) {
   const [now, setNow] = useState(() => Date.now());
@@ -314,13 +386,9 @@ function Countdown({ appointment }: { appointment: Appointment }) {
     return () => window.clearInterval(timer);
   }, []);
   const [hour, minute] = appointment.time.split(":").map(Number);
-  const target = new Date(
-    2026,
-    7,
-    16 + appointment.day,
-    hour,
-    minute,
-  ).getTime();
+  const targetDate = fromIsoDate(appointmentIsoDate(appointment));
+  targetDate.setHours(hour, minute, 0, 0);
+  const target = targetDate.getTime();
   const minutes = Math.floor((target - now) / 60000);
   let label = "começa agora";
   if (minutes > 1440) label = `em ${Math.floor(minutes / 1440)} dias`;
@@ -1118,7 +1186,7 @@ export default function App() {
   const [sessionActionsOpen, setSessionActionsOpen] = useState(false);
   const [rescheduling, setRescheduling] = useState<Appointment | null>(null);
   const [rescheduleForm, setRescheduleForm] = useState({
-    date: "2026-08-17",
+    date: nextBookableDate(),
     time: "08:00",
   });
   const [closingSession, setClosingSession] = useState<Appointment | null>(
@@ -1141,14 +1209,20 @@ export default function App() {
   const [toast, setToast] = useState("");
   const [appointments, setAppointments] = useState<Appointment[]>(() => {
     const saved = localStorage.getItem("sereno-appointments");
-    return saved ? JSON.parse(saved) : initialAppointments;
+    const stored: Appointment[] = saved
+      ? JSON.parse(saved)
+      : initialAppointments;
+    return stored.map((appointment) => ({
+      ...appointment,
+      scheduledDate: appointmentIsoDate(appointment),
+    }));
   });
   const [form, setForm] = useState({
     patient: "",
-    day: 1,
+    date: nextBookableDate(),
     time: "08:00",
     mode: "Online" as "Online" | "Presencial",
-    recurring: "Semanal",
+    recurring: "Não repetir",
   });
   const [patientForm, setPatientForm] = useState({
     name: "",
@@ -1208,9 +1282,6 @@ export default function App() {
   }
   const results = filterPatients(search);
   const appointmentPatientResults = filterPatients(form.patient);
-  const confirmed = appointments.filter(
-    (a) => a.status === "Confirmado",
-  ).length;
   const pending = appointments.filter((a) => a.status === "Aguardando").length;
 
   function save(next: Appointment[]) {
@@ -1224,30 +1295,73 @@ export default function App() {
   function createAppointment(e: React.FormEvent) {
     e.preventDefault();
     if (!form.patient.trim()) return;
+    const selectedDay = fromIsoDate(form.date).getDay();
+    if (selectedDay === 0 || selectedDay === 6) {
+      notify("Escolha um dia útil para agendar o atendimento");
+      return;
+    }
+    const interval =
+      form.recurring === "Semanal"
+        ? 7
+        : form.recurring === "Quinzenal"
+          ? 14
+          : 0;
+    const requestedDates = interval
+      ? Array.from({ length: 12 }, (_, index) =>
+          addCalendarDays(form.date, index * interval),
+        )
+      : [form.date];
+    const blocks: CalendarBlock[] = JSON.parse(
+      localStorage.getItem("sereno-blocks") || "[]",
+    );
+    const availableDates = requestedDates.filter((date) => {
+      const appointmentConflict = appointments.some(
+        (appointment) =>
+          appointmentIsoDate(appointment) === date &&
+          appointment.time === form.time &&
+          appointment.status !== "Cancelado",
+      );
+      const blockConflict = blocks.some(
+        (block) =>
+          blockAppliesToDate(block, date) && timeIsBlocked(block, form.time),
+      );
+      return !appointmentConflict && !blockConflict;
+    });
+    if (availableDates.length === 0) {
+      notify("Este horário está ocupado ou bloqueado");
+      return;
+    }
+    const createdAt = Date.now();
     save([
       ...appointments,
-      {
-        id: Date.now(),
+      ...availableDates.map((date, index) => ({
+        id: createdAt + index,
         patient: form.patient.trim(),
-        day: form.day,
+        day: dayFromIsoDate(date),
+        scheduledDate: date,
         time: form.time,
         mode: form.mode,
-        status: "Aguardando",
+        status: "Aguardando" as Status,
         paid: false,
-      },
+      })),
     ]);
     setModal(false);
     setForm({
       patient: "",
-      day: 1,
+      date: nextBookableDate(),
       time: "08:00",
       mode: "Online",
-      recurring: "Semanal",
+      recurring: "Não repetir",
     });
-    notify("Atendimento agendado com sucesso");
+    const skipped = requestedDates.length - availableDates.length;
+    notify(
+      interval
+        ? `${availableDates.length} atendimentos criados${skipped ? `; ${skipped} conflito(s) ignorado(s)` : ""}`
+        : "Atendimento agendado com sucesso",
+    );
   }
-  function openAt(day: number, time: string) {
-    setForm((f) => ({ ...f, day, time }));
+  function openAt(date: string, time: string) {
+    setForm((f) => ({ ...f, date, time }));
     setModal(true);
   }
   function updateAppointment(
@@ -1320,6 +1434,7 @@ export default function App() {
           id: Date.now(),
           patient: closingSession.patient,
           day: Math.min(5, Math.max(1, nextDate.getDay())),
+          scheduledDate: closingForm.nextAppointment.slice(0, 10),
           time: closingForm.nextAppointment.slice(11, 16),
           status: "Aguardando",
           mode: closingSession.mode,
@@ -1353,9 +1468,7 @@ export default function App() {
     setSessionActionsOpen(false);
     setRescheduling(appointment);
     setRescheduleForm({
-      date:
-        appointment.scheduledDate ||
-        `2026-08-${dates[appointment.day - 1].padStart(2, "0")}`,
+      date: appointment.scheduledDate || weekDate(appointment.day),
       time: appointment.time,
     });
   }
@@ -1365,6 +1478,25 @@ export default function App() {
     const selectedDay = new Date(`${rescheduleForm.date}T12:00:00`).getDay();
     if (selectedDay === 0 || selectedDay === 6) {
       notify("Escolha um dia útil para remarcar a sessão");
+      return;
+    }
+    const blocks: CalendarBlock[] = JSON.parse(
+      localStorage.getItem("sereno-blocks") || "[]",
+    );
+    const hasConflict = appointments.some(
+      (appointment) =>
+        appointment.id !== rescheduling.id &&
+        appointmentIsoDate(appointment) === rescheduleForm.date &&
+        appointment.time === rescheduleForm.time &&
+        appointment.status !== "Cancelado",
+    );
+    const isBlocked = blocks.some(
+      (block) =>
+        blockAppliesToDate(block, rescheduleForm.date) &&
+        timeIsBlocked(block, rescheduleForm.time),
+    );
+    if (hasConflict || isBlocked) {
+      notify("Não é possível remarcar para um horário ocupado ou bloqueado");
       return;
     }
     updateAppointment(
@@ -1789,11 +1921,10 @@ export default function App() {
           {view === "agenda" && (
             <Agenda
               appointments={appointments}
-              confirmed={confirmed}
-              pending={pending}
               openAt={openAt}
               setModal={setModal}
               select={openAppointment}
+              notify={notify}
             />
           )}
           {view === "inicio" && (
@@ -1890,19 +2021,14 @@ export default function App() {
             </label>
             <div className="form-row">
               <label>
-                Dia
-                <select
-                  value={form.day}
-                  onChange={(e) =>
-                    setForm({ ...form, day: Number(e.target.value) })
-                  }
-                >
-                  {weekdays.map((d, i) => (
-                    <option value={i + 1} key={d}>
-                      {d}, {dates[i]} ago.
-                    </option>
-                  ))}
-                </select>
+                Data
+                <input
+                  type="date"
+                  min={toIsoDate(new Date())}
+                  value={form.date}
+                  onChange={(e) => setForm({ ...form, date: e.target.value })}
+                  required
+                />
               </label>
               <label>
                 Horário
@@ -2309,7 +2435,7 @@ export default function App() {
                 Data
                 <input
                   type="date"
-                  min="2026-08-14"
+                  min={toIsoDate(new Date())}
                   value={rescheduleForm.date}
                   onChange={(event) =>
                     setRescheduleForm({
@@ -2557,18 +2683,16 @@ export default function App() {
 
 function Agenda({
   appointments,
-  confirmed,
-  pending,
   openAt,
   setModal,
   select,
+  notify,
 }: {
   appointments: Appointment[];
-  confirmed: number;
-  pending: number;
-  openAt: (d: number, t: string) => void;
+  openAt: (date: string, time: string) => void;
   setModal: (v: boolean) => void;
   select: (a: Appointment) => void;
+  notify: (message: string) => void;
 }) {
   const [week, setWeek] = useState(0);
   const [calendarView, setCalendarView] = useState<CalendarView>("Semana");
@@ -2600,19 +2724,46 @@ function Agenda({
     ),
   );
   const [blockForm, setBlockForm] = useState({
-    day: 1,
+    date: nextBookableDate(),
     time: "08:00",
     endTime: "09:00",
     reason: "Compromisso pessoal",
     allDay: false,
     recurring: false,
   });
+  useEffect(() => {
+    localStorage.setItem("sereno-blocks", JSON.stringify(blocks));
+  }, [blocks]);
   function createBlock(e: React.FormEvent) {
     e.preventDefault();
-    const next = [...blocks, { ...blockForm, id: Date.now() }];
+    const day = fromIsoDate(blockForm.date).getDay();
+    if (day === 0 || day === 6) return;
+    const appointmentConflict = appointments.some(
+      (appointment) =>
+        (appointmentIsoDate(appointment) === blockForm.date ||
+          (blockForm.recurring && appointment.day === day)) &&
+        appointment.status !== "Cancelado" &&
+        (blockForm.allDay ||
+          (appointment.time >= blockForm.time &&
+            appointment.time < blockForm.endTime)),
+    );
+    if (appointmentConflict) {
+      notify("Já existe um atendimento nesse período");
+      return;
+    }
+    const next = [
+      ...blocks,
+      {
+        ...blockForm,
+        day,
+        scheduledDate: blockForm.date,
+        id: Date.now(),
+      },
+    ];
     setBlocks(next);
     localStorage.setItem("sereno-blocks", JSON.stringify(next));
     setBlockModal(false);
+    notify("Horário bloqueado com sucesso");
   }
   function removeBlock(block: CalendarBlock) {
     if (window.confirm(`Remover o bloqueio “${block.reason}”?`)) {
@@ -2621,12 +2772,36 @@ function Agenda({
       localStorage.setItem("sereno-blocks", JSON.stringify(next));
     }
   }
-  const label =
-    week === 0
-      ? "17 – 21 de agosto, 2026"
-      : week < 0
-        ? "10 – 14 de agosto, 2026"
-        : "24 – 28 de agosto, 2026";
+  const weekDates = [1, 2, 3, 4, 5].map((day) => weekDate(day, week));
+  const weekStart = fromIsoDate(weekDates[0]);
+  const weekEnd = fromIsoDate(weekDates[4]);
+  const label = `${weekStart.getDate()} – ${weekEnd.getDate()} de ${monthNames[weekEnd.getMonth()]}, ${weekEnd.getFullYear()}`;
+  const visibleAppointments = appointments.filter((appointment) =>
+    weekDates.includes(appointmentIsoDate(appointment)),
+  );
+  const visibleConfirmed = visibleAppointments.filter(
+    (appointment) => appointment.status === "Confirmado",
+  ).length;
+  const visiblePending = visibleAppointments.filter(
+    (appointment) => appointment.status === "Aguardando",
+  ).length;
+  const monthReference = fromIsoDate(weekDates[0]);
+  const monthStart = new Date(
+    monthReference.getFullYear(),
+    monthReference.getMonth(),
+    1,
+    12,
+  );
+  const monthGridStart = new Date(monthStart);
+  const monthStartDay = monthStart.getDay();
+  monthGridStart.setDate(
+    monthStart.getDate() - (monthStartDay === 0 ? 6 : monthStartDay - 1),
+  );
+  const monthGridDates = Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(monthGridStart);
+    date.setDate(monthGridStart.getDate() + index);
+    return date;
+  });
   return (
     <>
       <section className="page-title">
@@ -2652,7 +2827,7 @@ function Agenda({
             <CalendarDays />
           </span>
           <p>
-            <b>{appointments.length}</b>
+            <b>{visibleAppointments.length}</b>
             <span>atendimentos na semana</span>
           </p>
         </div>
@@ -2661,7 +2836,7 @@ function Agenda({
             <Check />
           </span>
           <p>
-            <b>{confirmed}</b>
+            <b>{visibleConfirmed}</b>
             <span>confirmados</span>
           </p>
         </div>
@@ -2670,7 +2845,7 @@ function Agenda({
             <Clock3 />
           </span>
           <p>
-            <b>{pending}</b>
+            <b>{visiblePending}</b>
             <span>aguardando confirmação</span>
           </p>
         </div>
@@ -2717,17 +2892,21 @@ function Agenda({
                   onClick={() => setSelectedDay(i + 1)}
                 >
                   <span>{day}</span>
-                  <b>{dates[i]}</b>
+                  <b>{fromIsoDate(weekDates[i]).getDate()}</b>
                 </button>
               ))}
             </div>
             <div className="day-timeline">
               {times.map((time, timeIndex) => {
+                const selectedDate = weekDates[selectedDay - 1];
                 const a = appointments.find(
-                  (x) => x.day === selectedDay && x.time === time,
+                  (x) =>
+                    appointmentIsoDate(x) === selectedDate && x.time === time,
                 );
                 const blocking = blocks.find(
-                  (b) => b.day === selectedDay && (b.allDay || b.time === time),
+                  (b) =>
+                    blockAppliesToDate(b, selectedDate) &&
+                    timeIsBlocked(b, time),
                 );
                 const block =
                   blocking?.allDay && timeIndex > 0 ? undefined : blocking;
@@ -2768,7 +2947,7 @@ function Agenda({
                       ) : (
                         <button
                           className="free-line"
-                          onClick={() => openAt(selectedDay, time)}
+                          onClick={() => openAt(selectedDate, time)}
                         >
                           <Plus size={15} />
                           Agendar neste horário
@@ -2788,30 +2967,37 @@ function Agenda({
               ))}
             </div>
             <div className="month-grid">
-              {Array.from({ length: 42 }, (_, i) => {
-                const day = i - 4;
-                const inMonth = day > 0 && day <= 31;
-                const dayAppointments =
-                  inMonth && week === 0 && day >= 17 && day <= 21
-                    ? appointments.filter((a) => a.day === day - 16)
-                    : [];
-                const dayBlocks =
-                  inMonth && week === 0 && day >= 17 && day <= 21
-                    ? blocks.filter((b) => b.day === day - 16)
-                    : [];
+              {monthGridDates.map((calendarDate) => {
+                const date = toIsoDate(calendarDate);
+                const inMonth =
+                  calendarDate.getMonth() === monthReference.getMonth();
+                const weekday = calendarDate.getDay();
+                const dayAppointments = appointments.filter(
+                  (appointment) => appointmentIsoDate(appointment) === date,
+                );
+                const dayBlocks = blocks.filter((block) =>
+                  blockAppliesToDate(block, date),
+                );
                 return (
                   <button
-                    key={i}
-                    className={`month-day ${!inMonth ? "outside" : ""} ${day === 13 ? "today-date" : ""}`}
-                    disabled={!inMonth}
+                    key={date}
+                    className={`month-day ${!inMonth ? "outside" : ""} ${date === toIsoDate(new Date()) ? "today-date" : ""}`}
+                    disabled={!inMonth || weekday === 0 || weekday === 6}
                     onClick={() => {
-                      if (day >= 17 && day <= 21) {
-                        setSelectedDay(day - 16);
-                        setCalendarView("Dia");
-                      }
+                      const clicked = fromIsoDate(date);
+                      const clickedMonday = new Date(clicked);
+                      clickedMonday.setDate(clicked.getDate() - (weekday - 1));
+                      const difference = Math.round(
+                        (clickedMonday.getTime() -
+                          fromIsoDate(startOfCalendarWeek()).getTime()) /
+                          604800000,
+                      );
+                      setWeek(difference);
+                      setSelectedDay(weekday);
+                      setCalendarView("Dia");
                     }}
                   >
-                    <b>{inMonth ? day : ""}</b>
+                    <b>{calendarDate.getDate()}</b>
                     {dayAppointments.length > 0 && (
                       <span className="month-count">
                         {dayAppointments.length} atendimento
@@ -2834,11 +3020,11 @@ function Agenda({
             <div className="corner"></div>
             {weekdays.map((d, i) => (
               <div
-                className={`day-head ${i === 3 && week === 0 ? "current" : ""}`}
+                className={`day-head ${weekDates[i] === toIsoDate(new Date()) ? "current" : ""}`}
                 key={d}
               >
                 <span>{d}</span>
-                <b>{Number(dates[i]) + week * 7}</b>
+                <b>{fromIsoDate(weekDates[i]).getDate()}</b>
               </div>
             ))}
             {times.flatMap((time) => [
@@ -2846,27 +3032,21 @@ function Agenda({
                 {time}
               </div>,
               ...weekdays.map((_, i) => {
-                const a =
-                  week === 0
-                    ? appointments.find(
-                        (x) => x.day === i + 1 && x.time === time,
-                      )
-                    : undefined;
-                const blocking =
-                  week === 0
-                    ? blocks.find(
-                        (b) => b.day === i + 1 && (b.allDay || b.time === time),
-                      )
-                    : undefined;
+                const slotDate = weekDates[i];
+                const a = appointments.find(
+                  (x) => appointmentIsoDate(x) === slotDate && x.time === time,
+                );
+                const blocking = blocks.find(
+                  (b) =>
+                    blockAppliesToDate(b, slotDate) && timeIsBlocked(b, time),
+                );
                 const block =
                   blocking?.allDay && time !== times[0] ? undefined : blocking;
                 return (
                   <div
                     className="slot"
                     key={`${i}-${time}`}
-                    onClick={() =>
-                      !a && !blocking && week === 0 && openAt(i + 1, time)
-                    }
+                    onClick={() => !a && !blocking && openAt(slotDate, time)}
                   >
                     {a ? (
                       <button
@@ -2949,19 +3129,16 @@ function Agenda({
             </div>
             <div className="form-row">
               <label>
-                Dia
-                <select
-                  value={blockForm.day}
+                Data
+                <input
+                  type="date"
+                  min={toIsoDate(new Date())}
+                  value={blockForm.date}
                   onChange={(e) =>
-                    setBlockForm({ ...blockForm, day: Number(e.target.value) })
+                    setBlockForm({ ...blockForm, date: e.target.value })
                   }
-                >
-                  {weekdays.map((d, i) => (
-                    <option key={d} value={i + 1}>
-                      {d}, {dates[i]} de agosto
-                    </option>
-                  ))}
-                </select>
+                  required
+                />
               </label>
               <label>
                 Motivo
@@ -4036,7 +4213,18 @@ function Overview({
   select: (a: Appointment) => void;
   go: (v: View) => void;
 }) {
-  const nextBase = appointments.find((a) => a.status === "Confirmado");
+  const nowKey = `${toIsoDate(new Date())}T${new Date().toTimeString().slice(0, 5)}`;
+  const nextBase = appointments
+    .filter(
+      (appointment) =>
+        appointment.status === "Confirmado" &&
+        `${appointmentIsoDate(appointment)}T${appointment.time}` >= nowKey,
+    )
+    .sort((a, b) =>
+      `${appointmentIsoDate(a)}T${a.time}`.localeCompare(
+        `${appointmentIsoDate(b)}T${b.time}`,
+      ),
+    )[0];
   const next = nextBase
     ? {
         ...nextBase,
@@ -4059,12 +4247,17 @@ function Overview({
   const received = appointments
     .filter((a) => a.paid)
     .reduce((s, a) => s + (a.amount ?? 180), 0);
+  const currentHour = new Date().getHours();
+  const greeting =
+    currentHour < 12 ? "Bom dia" : currentHour < 18 ? "Boa tarde" : "Boa noite";
   return (
     <>
       <section className="page-title serene-title">
         <div>
-          <span className="eyebrow">QUINTA-FEIRA, 13 DE AGOSTO</span>
-          <h1>Bom dia, Kamilla.</h1>
+          <span className="eyebrow">
+            {formatCalendarDate(toIsoDate(new Date()), true).toUpperCase()}
+          </span>
+          <h1>{greeting}, Kamilla.</h1>
           <p>
             Sua rotina está quase em ordem. Há{" "}
             {awaiting.length + overdue.length + documentationPending.length}{" "}
@@ -4100,8 +4293,7 @@ function Overview({
               <span>
                 <strong>Confirmar atendimento de {a.patient}</strong>
                 <small>
-                  {weekdays[a.day - 1]}, {dates[a.day - 1]} de agosto às{" "}
-                  {a.time}
+                  {formatCalendarDate(appointmentIsoDate(a), true)} às {a.time}
                 </small>
               </span>
               <ArrowRight />
@@ -4280,13 +4472,15 @@ function DailyPlanningPanel({
   select: (appointment: Appointment) => void;
   go: (view: View) => void;
 }) {
-  const days = [4, 5].map((day) => ({
-    day,
-    label: day === 4 ? "Hoje" : "Amanhã",
+  const today = toIsoDate(new Date());
+  const days = [today, addCalendarDays(today, 1)].map((date, index) => ({
+    date,
+    label: index === 0 ? "Hoje" : "Amanhã",
     appointments: appointments
       .filter(
         (appointment) =>
-          appointment.day === day && appointment.status !== "Cancelado",
+          appointmentIsoDate(appointment) === date &&
+          appointment.status !== "Cancelado",
       )
       .sort((a, b) => a.time.localeCompare(b.time)),
   }));
@@ -4305,14 +4499,12 @@ function DailyPlanningPanel({
       </div>
       <section className="daily-planning-grid">
         {days.map((group) => (
-          <article className="planning-day" key={group.day}>
+          <article className="planning-day" key={group.date}>
             <div className="section-label">
               <span>
                 <CalendarClock size={16} /> {group.label}
               </span>
-              <small>
-                {weekdays[group.day - 1]}, {dates[group.day - 1]} de agosto
-              </small>
+              <small>{formatCalendarDate(group.date, true)}</small>
             </div>
             {group.appointments.length > 0 ? (
               <div className="planning-list">
@@ -5178,7 +5370,10 @@ function Finance({
     <>
       <section className="page-title">
         <div>
-          <span className="eyebrow">AGOSTO DE 2026</span>
+          <span className="eyebrow">
+            {monthNames[new Date().getMonth()].toUpperCase()} DE{" "}
+            {new Date().getFullYear()}
+          </span>
           <h1>Financeiro</h1>
           <p>Acompanhe recebimentos sem complicação.</p>
         </div>
@@ -5301,7 +5496,7 @@ function Finance({
                   <strong>{a.patient}</strong>
                 </button>
                 <span>
-                  {dates[a.day - 1]} ago. · {a.time}
+                  {formatBrazilianDate(appointmentIsoDate(a))} · {a.time}
                 </span>
                 <strong>{money(a.amount)}</strong>
                 <span
@@ -5541,7 +5736,8 @@ function Finance({
                 <span className="eyebrow">REGISTRO FINANCEIRO</span>
                 <h2>{editing.patient}</h2>
                 <p>
-                  Atendimento em {dates[editing.day - 1]} de agosto, às{" "}
+                  Atendimento em{" "}
+                  {formatBrazilianDate(appointmentIsoDate(editing))}, às{" "}
                   {editing.time}.
                 </p>
               </div>

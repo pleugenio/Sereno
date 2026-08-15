@@ -135,7 +135,20 @@ test("bloqueio de agenda e cadastro infantojuvenil com exclusão", async ({
   await page.getByRole("button", { name: /Bloquear horário/ }).click();
   await page.getByLabel("Motivo").selectOption("Almoço");
   await page.getByRole("button", { name: /Criar bloqueio/ }).click();
-  await expect(page.getByRole("button", { name: /Almoço/ })).toBeVisible();
+  await expect(page.getByText("Horário bloqueado com sucesso")).toBeVisible();
+  const blockedDate = await page.evaluate(() => {
+    const blocks = JSON.parse(localStorage.getItem("sereno-blocks") || "[]");
+    return blocks.find((block: { reason: string }) => block.reason === "Almoço")
+      .scheduledDate;
+  });
+  await page.getByRole("button", { name: /Novo atendimento/ }).click();
+  await page.getByLabel("Paciente").fill("Conflito com bloqueio E2E");
+  await page.getByLabel("Data").fill(blockedDate);
+  await page.getByRole("button", { name: /Agendar atendimento/ }).click();
+  await expect(
+    page.getByText("Este horário está ocupado ou bloqueado"),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Cancelar", exact: true }).click();
 
   await page.getByRole("button", { name: "Pacientes", exact: true }).click();
   await page.getByRole("button", { name: /Novo paciente/ }).click();
@@ -165,8 +178,9 @@ test("bloqueio de agenda e cadastro infantojuvenil com exclusão", async ({
 
 test("sala fixa do Meet valida, salva e libera entrada", async ({ page }) => {
   await login(page);
-  await page.getByRole("button", { name: "Agenda", exact: true }).click();
-  await page.getByRole("button", { name: /Marina Online/ }).click();
+  await page
+    .getByRole("button", { name: /Preparar próximo atendimento/ })
+    .click();
   const room = page.getByPlaceholder("Cole o link meet.google.com aqui");
   await room.fill("link-invalido");
   await page.getByRole("button", { name: "Salvar", exact: true }).click();
@@ -179,7 +193,7 @@ test("sala fixa do Meet valida, salva e libera entrada", async ({ page }) => {
     page.getByText("Sala fixa salva para este paciente"),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Entrar na sala" }),
+    page.locator(".meet-box").getByRole("link", { name: "Entrar na sala" }),
   ).toHaveAttribute("href", "https://meet.google.com/abc-defg-hij");
 });
 
@@ -253,7 +267,7 @@ test("prepara sessão com remarcação e cancelamento organizados", async ({
   await expect(page.getByRole("button", { name: "Enviar link" })).toBeVisible();
   await page.getByText("Outras ações").click();
   await page.getByRole("button", { name: "Remarcar sessão" }).click();
-  await page.getByLabel("Data").fill("2026-08-19");
+  await page.getByLabel("Data").fill("2026-09-03");
   await page.getByLabel("Horário").selectOption("11:00");
   await page.getByRole("button", { name: "Confirmar remarcação" }).click();
   await expect(
@@ -294,9 +308,41 @@ test("mostra hoje e amanhã como terceira opção de preparação", async ({
     page.getByRole("heading", { name: "Hoje e amanhã" }),
   ).toBeVisible();
   await expect(page.locator(".planning-day")).toHaveCount(2);
-  await page.locator(".planning-list > button").first().click();
+  await expect(page.getByText("Nenhuma sessão agendada")).toHaveCount(2);
+  await page
+    .locator(".dashboard-planning")
+    .getByRole("button", { name: "Ver agenda completa" })
+    .click();
+  await expect(page.getByRole("heading", { name: "Agenda" })).toBeVisible();
+});
+
+test("impede conflitos e cria recorrência com datas reais", async ({
+  page,
+}) => {
+  await login(page);
+  await page.getByRole("button", { name: "Agenda", exact: true }).click();
+  await page.getByRole("button", { name: /Novo atendimento/ }).click();
+  await page.getByLabel("Paciente").fill("Recorrência Teste E2E");
+  await page.getByLabel("Data").fill("2026-08-31");
+  await page.getByLabel("Horário").selectOption("09:00");
+  await page.getByLabel("Recorrência").selectOption("Semanal");
+  await page.getByRole("button", { name: /Agendar atendimento/ }).click();
+  await expect(page.getByText("12 atendimentos criados")).toBeVisible();
+  const recurringAppointments = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("sereno-appointments") || "[]").filter(
+      (appointment: { patient: string }) =>
+        appointment.patient === "Recorrência Teste E2E",
+    ),
+  );
+  expect(recurringAppointments).toHaveLength(12);
+
+  await page.getByRole("button", { name: /Novo atendimento/ }).click();
+  await page.getByLabel("Paciente").fill("Conflito Teste E2E");
+  await page.getByLabel("Data").fill("2026-08-31");
+  await page.getByLabel("Horário").selectOption("09:00");
+  await page.getByRole("button", { name: /Agendar atendimento/ }).click();
   await expect(
-    page.locator(".eyebrow", { hasText: "PREPARAR SESSÃO" }),
+    page.getByText("Este horário está ocupado ou bloqueado"),
   ).toBeVisible();
 });
 
