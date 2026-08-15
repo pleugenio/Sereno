@@ -3660,7 +3660,16 @@ function Patients({
       ? (profiles.find((p) => p.name === openPatientName) ?? null)
       : null,
   );
+  const [patientTab, setPatientTab] = useState<
+    | "Dados pessoais"
+    | "Contato"
+    | "Responsável"
+    | "Atendimento"
+    | "Financeiro"
+    | "Documentos"
+  >("Dados pessoais");
   function open(name: string) {
+    setPatientTab("Dados pessoais");
     setEditing(
       profiles.find((p) => p.name === name) ?? {
         name,
@@ -3681,6 +3690,12 @@ function Patients({
       setEditing(null);
     }
   }
+  const patientAge = editing?.birthDate
+    ? Math.max(
+        0,
+        new Date().getFullYear() - Number(editing.birthDate.slice(0, 4)),
+      )
+    : null;
   return (
     <>
       <section className="page-title">
@@ -3731,7 +3746,7 @@ function Patients({
       {editing && (
         <div className="modal-backdrop" onMouseDown={() => setEditing(null)}>
           <form
-            className="modal"
+            className="modal patient-manager-modal"
             onSubmit={submit}
             onMouseDown={(e) => e.stopPropagation()}
           >
@@ -3745,352 +3760,557 @@ function Patients({
                 <X />
               </button>
             </div>
-            <div className="form-row">
-              <label>
-                Tipo de paciente
-                <select
-                  value={editing.patientType || "Adulto"}
-                  onChange={(e) =>
-                    setEditing({
-                      ...editing,
-                      patientType: e.target
-                        .value as PatientProfile["patientType"],
-                    })
-                  }
+            <div className="patient-quick-summary">
+              <div className="patient-summary-person">
+                <span>{initials(editing.name)}</span>
+                <div>
+                  <strong>{editing.name}</strong>
+                  <small>
+                    {editing.patientType || "Adulto"}
+                    {patientAge !== null ? ` · ${patientAge} anos` : ""}
+                  </small>
+                </div>
+              </div>
+              <div>
+                <small>CONTATO</small>
+                <strong>{editing.phone || "Não informado"}</strong>
+              </div>
+              <div>
+                <small>ACORDO</small>
+                <strong>{editing.agreement}</strong>
+              </div>
+              <div>
+                <small>VALOR</small>
+                <strong>{money(editing.value)}</strong>
+              </div>
+              <div>
+                <small>SITUAÇÃO</small>
+                <strong
+                  className={`summary-status ${editing.status.toLowerCase()}`}
                 >
-                  <option>Adulto</option>
-                  <option>Criança ou adolescente</option>
-                </select>
-              </label>
-              <label>
-                Data de nascimento
-                <input
-                  type="date"
-                  value={editing.birthDate || ""}
-                  onChange={(e) =>
-                    setEditing({ ...editing, birthDate: e.target.value })
-                  }
-                />
-              </label>
+                  {editing.status}
+                </strong>
+              </div>
+              <div>
+                <small>SALA ONLINE</small>
+                <strong>{editing.meetUrl ? "Preparada" : "Pendente"}</strong>
+              </div>
             </div>
-            <div className="form-row">
-              <label>
-                CPF
-                <input
-                  inputMode="numeric"
-                  value={editing.cpf || ""}
-                  onChange={(e) =>
-                    setEditing({ ...editing, cpf: formatCpf(e.target.value) })
-                  }
-                  placeholder="000.000.000-00"
-                />
-              </label>
-              <label>
-                Endereço completo
-                <input
-                  value={editing.address || ""}
-                  onChange={(e) =>
-                    setEditing({ ...editing, address: e.target.value })
-                  }
-                  placeholder="Rua, número, complemento, cidade e estado"
-                />
-              </label>
+            <div className="patient-form-tabs">
+              {(
+                [
+                  "Dados pessoais",
+                  "Contato",
+                  "Responsável",
+                  "Atendimento",
+                  "Financeiro",
+                  "Documentos",
+                ] as const
+              ).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  className={patientTab === tab ? "active" : ""}
+                  onClick={() => setPatientTab(tab)}
+                >
+                  {tab}
+                </button>
+              ))}
             </div>
-            <div className="form-row">
-              <label>
-                E-mail
-                <input
-                  value={editing.email}
-                  onChange={(e) =>
-                    setEditing({ ...editing, email: e.target.value })
-                  }
-                />
-              </label>
-              <label>
-                Telefone
-                <input
-                  value={editing.phone}
-                  onChange={(e) =>
-                    setEditing({ ...editing, phone: e.target.value })
-                  }
-                />
-              </label>
-            </div>
-            {editing.patientType === "Criança ou adolescente" && (
-              <div className="minor-box">
-                <div className="minor-heading">
-                  <div>
-                    <span className="eyebrow">RESPONSÁVEIS E AUTORIZAÇÕES</span>
-                    <strong>Organização do atendimento infantojuvenil</strong>
+            <div className="patient-form-content">
+              {patientTab === "Dados pessoais" && (
+                <section className="patient-form-section">
+                  <div className="form-section-heading">
+                    <div>
+                      <span>IDENTIFICAÇÃO</span>
+                      <h3>Dados pessoais</h3>
+                      <p>Informações básicas para identificar o cadastro.</p>
+                    </div>
+                    <UsersRound />
                   </div>
-                  <span className="minor-badge">Menor de idade</span>
-                </div>
-                <div className="form-row">
-                  <label>
-                    Responsável legal
-                    <input
-                      value={editing.guardianName || ""}
-                      onChange={(e) =>
-                        setEditing({ ...editing, guardianName: e.target.value })
-                      }
-                      placeholder="Nome completo"
-                    />
-                  </label>
-                  <label>
-                    Vínculo
-                    <input
-                      value={editing.guardianRelation || ""}
-                      onChange={(e) =>
-                        setEditing({
-                          ...editing,
-                          guardianRelation: e.target.value,
-                        })
-                      }
-                      placeholder="Mãe, pai, tutor..."
-                    />
-                  </label>
-                </div>
-                <div className="form-row">
-                  <label>
-                    Telefone do responsável
-                    <input
-                      value={editing.guardianPhone || ""}
-                      onChange={(e) =>
-                        setEditing({
-                          ...editing,
-                          guardianPhone: e.target.value,
-                        })
-                      }
-                      placeholder="(00) 00000-0000"
-                    />
-                  </label>
-                  <label>
-                    E-mail do responsável
-                    <input
-                      type="email"
-                      value={editing.guardianEmail || ""}
-                      onChange={(e) =>
-                        setEditing({
-                          ...editing,
-                          guardianEmail: e.target.value,
-                        })
-                      }
-                    />
-                  </label>
-                </div>
-                <div className="form-row">
-                  <label>
-                    Responsável financeiro
-                    <input
-                      value={
-                        editing.financialGuardianName ||
-                        editing.guardianName ||
-                        ""
-                      }
-                      onChange={(e) =>
-                        setEditing({
-                          ...editing,
-                          financialGuardianName: e.target.value,
-                        })
-                      }
-                    />
-                  </label>
-                  <label>
-                    Telefone financeiro
-                    <input
-                      value={
-                        editing.financialGuardianPhone ||
-                        editing.guardianPhone ||
-                        ""
-                      }
-                      onChange={(e) =>
-                        setEditing({
-                          ...editing,
-                          financialGuardianPhone: e.target.value,
-                        })
-                      }
-                    />
-                  </label>
-                </div>
-                <div className="form-row">
-                  <label>
-                    Enviar lembretes para
-                    <select
-                      value={editing.reminderRecipient || "Responsável"}
-                      onChange={(e) =>
-                        setEditing({
-                          ...editing,
-                          reminderRecipient: e.target.value as
-                            "Paciente" | "Responsável",
-                        })
-                      }
-                    >
-                      <option>Responsável</option>
-                      <option>Paciente</option>
-                    </select>
-                  </label>
-                  <label>
-                    Enviar link do Meet para
-                    <select
-                      value={editing.meetRecipient || "Responsável"}
-                      onChange={(e) =>
-                        setEditing({
-                          ...editing,
-                          meetRecipient: e.target.value as
-                            "Paciente" | "Responsável",
-                        })
-                      }
-                    >
-                      <option>Responsável</option>
-                      <option>Paciente</option>
-                    </select>
-                  </label>
-                </div>
-                <label>
-                  Contato de emergência
-                  <input
-                    value={editing.emergencyContact || ""}
-                    onChange={(e) =>
-                      setEditing({
-                        ...editing,
-                        emergencyContact: e.target.value,
-                      })
-                    }
-                    placeholder="Nome e telefone"
-                  />
-                </label>
-                <div className="authorization-list">
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={editing.serviceAuthorized || false}
-                      onChange={(e) =>
-                        setEditing({
-                          ...editing,
-                          serviceAuthorized: e.target.checked,
-                        })
-                      }
-                    />
-                    <span>Autorização para atendimento registrada</span>
-                  </label>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={editing.onlineAuthorized || false}
-                      onChange={(e) =>
-                        setEditing({
-                          ...editing,
-                          onlineAuthorized: e.target.checked,
-                        })
-                      }
-                    />
-                    <span>Autorização para atendimento online registrada</span>
-                  </label>
-                </div>
-              </div>
-            )}
-            <div className="agreement-box">
-              <span className="eyebrow">ACORDO FINANCEIRO</span>
-              <div className="form-row">
-                <label>
-                  Forma do acordo
-                  <select
-                    value={editing.agreement}
-                    onChange={(e) =>
-                      setEditing({
-                        ...editing,
-                        agreement: e.target.value as Agreement,
-                      })
-                    }
-                  >
-                    <option>Por sessão</option>
-                    <option>Semanal</option>
-                    <option>Quinzenal</option>
-                    <option>Mensal</option>
-                    <option>Pacote</option>
-                  </select>
-                </label>
-                <label>
-                  Valor por sessão
-                  <input
-                    type="number"
-                    min="0"
-                    value={editing.value}
-                    onChange={(e) =>
-                      setEditing({ ...editing, value: Number(e.target.value) })
-                    }
-                  />
-                </label>
-              </div>
-              <div className="form-row">
-                <label>
-                  Dia de vencimento
-                  <input
-                    type="number"
-                    min="1"
-                    max="31"
-                    value={editing.dueDay}
-                    onChange={(e) =>
-                      setEditing({ ...editing, dueDay: Number(e.target.value) })
-                    }
-                  />
-                </label>
-                <label>
-                  Situação
-                  <select
-                    value={editing.status}
-                    onChange={(e) =>
-                      setEditing({
-                        ...editing,
-                        status: e.target.value as PatientProfile["status"],
-                      })
-                    }
-                  >
-                    <option>Ativo</option>
-                    <option>Pausado</option>
-                    <option>Encerrado</option>
-                  </select>
-                </label>
-              </div>
-            </div>
-            <div className="patient-room-field">
-              <span className="eyebrow">SALA FIXA DO GOOGLE MEET</span>
-              <label>
-                Link da sala
-                <input
-                  value={editing.meetUrl || ""}
-                  onChange={(e) =>
-                    setEditing({ ...editing, meetUrl: e.target.value })
-                  }
-                  placeholder="https://meet.google.com/xxx-xxxx-xxx"
-                />
-              </label>
-              {editing.meetUrl && (
-                <a
-                  className="secondary"
-                  href={editing.meetUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <Video size={16} />
-                  Abrir sala
-                </a>
+                  <div className="form-row">
+                    <label>
+                      Tipo de paciente
+                      <select
+                        value={editing.patientType || "Adulto"}
+                        onChange={(e) =>
+                          setEditing({
+                            ...editing,
+                            patientType: e.target
+                              .value as PatientProfile["patientType"],
+                          })
+                        }
+                      >
+                        <option>Adulto</option>
+                        <option>Criança ou adolescente</option>
+                      </select>
+                    </label>
+                    <label>
+                      Data de nascimento
+                      <input
+                        type="date"
+                        value={editing.birthDate || ""}
+                        onChange={(e) =>
+                          setEditing({ ...editing, birthDate: e.target.value })
+                        }
+                      />
+                    </label>
+                  </div>
+                  <div className="form-row">
+                    <label>
+                      CPF
+                      <input
+                        inputMode="numeric"
+                        value={editing.cpf || ""}
+                        onChange={(e) =>
+                          setEditing({
+                            ...editing,
+                            cpf: formatCpf(e.target.value),
+                          })
+                        }
+                        placeholder="000.000.000-00"
+                      />
+                    </label>
+                    <label>
+                      Endereço completo
+                      <input
+                        value={editing.address || ""}
+                        onChange={(e) =>
+                          setEditing({ ...editing, address: e.target.value })
+                        }
+                        placeholder="Rua, número, complemento, cidade e estado"
+                      />
+                    </label>
+                  </div>
+                  <div className="form-row">
+                    <label>
+                      E-mail
+                      <input
+                        value={editing.email}
+                        onChange={(e) =>
+                          setEditing({ ...editing, email: e.target.value })
+                        }
+                      />
+                    </label>
+                    <label>
+                      Telefone
+                      <input
+                        value={editing.phone}
+                        onChange={(e) =>
+                          setEditing({ ...editing, phone: e.target.value })
+                        }
+                      />
+                    </label>
+                  </div>
+                </section>
               )}
-              <small>
-                Este link será usado em todos os atendimentos online deste
-                paciente.
-              </small>
+              {patientTab === "Contato" && (
+                <section className="patient-form-section">
+                  <div className="form-section-heading">
+                    <div>
+                      <span>COMUNICAÇÃO</span>
+                      <h3>Contato e endereço</h3>
+                      <p>
+                        Canais usados em lembretes e mensagens administrativas.
+                      </p>
+                    </div>
+                    <MessageCircle />
+                  </div>
+                  <div className="form-row">
+                    <label>
+                      E-mail
+                      <input
+                        type="email"
+                        value={editing.email}
+                        onChange={(e) =>
+                          setEditing({ ...editing, email: e.target.value })
+                        }
+                        placeholder="nome@exemplo.com"
+                      />
+                    </label>
+                    <label>
+                      Telefone
+                      <input
+                        value={editing.phone}
+                        onChange={(e) =>
+                          setEditing({ ...editing, phone: e.target.value })
+                        }
+                        placeholder="(00) 00000-0000"
+                      />
+                    </label>
+                  </div>
+                  <label>
+                    Endereço completo
+                    <input
+                      value={editing.address || ""}
+                      onChange={(e) =>
+                        setEditing({ ...editing, address: e.target.value })
+                      }
+                      placeholder="Rua, número, complemento, cidade e estado"
+                    />
+                  </label>
+                  <div className="contact-review">
+                    <div>
+                      <small>LEMBRETES</small>
+                      <strong>
+                        {editing.patientType === "Criança ou adolescente"
+                          ? editing.reminderRecipient || "Responsável"
+                          : "Paciente"}
+                      </strong>
+                    </div>
+                    <div>
+                      <small>LINK DA SALA</small>
+                      <strong>
+                        {editing.patientType === "Criança ou adolescente"
+                          ? editing.meetRecipient || "Responsável"
+                          : "Paciente"}
+                      </strong>
+                    </div>
+                  </div>
+                </section>
+              )}
+              {patientTab === "Responsável" &&
+                editing.patientType === "Criança ou adolescente" && (
+                  <div className="minor-box">
+                    <div className="minor-heading">
+                      <div>
+                        <span className="eyebrow">
+                          RESPONSÁVEIS E AUTORIZAÇÕES
+                        </span>
+                        <strong>
+                          Organização do atendimento infantojuvenil
+                        </strong>
+                      </div>
+                      <span className="minor-badge">Menor de idade</span>
+                    </div>
+                    <div className="form-row">
+                      <label>
+                        Responsável legal
+                        <input
+                          value={editing.guardianName || ""}
+                          onChange={(e) =>
+                            setEditing({
+                              ...editing,
+                              guardianName: e.target.value,
+                            })
+                          }
+                          placeholder="Nome completo"
+                        />
+                      </label>
+                      <label>
+                        Vínculo
+                        <input
+                          value={editing.guardianRelation || ""}
+                          onChange={(e) =>
+                            setEditing({
+                              ...editing,
+                              guardianRelation: e.target.value,
+                            })
+                          }
+                          placeholder="Mãe, pai, tutor..."
+                        />
+                      </label>
+                    </div>
+                    <div className="form-row">
+                      <label>
+                        Telefone do responsável
+                        <input
+                          value={editing.guardianPhone || ""}
+                          onChange={(e) =>
+                            setEditing({
+                              ...editing,
+                              guardianPhone: e.target.value,
+                            })
+                          }
+                          placeholder="(00) 00000-0000"
+                        />
+                      </label>
+                      <label>
+                        E-mail do responsável
+                        <input
+                          type="email"
+                          value={editing.guardianEmail || ""}
+                          onChange={(e) =>
+                            setEditing({
+                              ...editing,
+                              guardianEmail: e.target.value,
+                            })
+                          }
+                        />
+                      </label>
+                    </div>
+                    <div className="form-row">
+                      <label>
+                        Responsável financeiro
+                        <input
+                          value={
+                            editing.financialGuardianName ||
+                            editing.guardianName ||
+                            ""
+                          }
+                          onChange={(e) =>
+                            setEditing({
+                              ...editing,
+                              financialGuardianName: e.target.value,
+                            })
+                          }
+                        />
+                      </label>
+                      <label>
+                        Telefone financeiro
+                        <input
+                          value={
+                            editing.financialGuardianPhone ||
+                            editing.guardianPhone ||
+                            ""
+                          }
+                          onChange={(e) =>
+                            setEditing({
+                              ...editing,
+                              financialGuardianPhone: e.target.value,
+                            })
+                          }
+                        />
+                      </label>
+                    </div>
+                    <div className="form-row">
+                      <label>
+                        Enviar lembretes para
+                        <select
+                          value={editing.reminderRecipient || "Responsável"}
+                          onChange={(e) =>
+                            setEditing({
+                              ...editing,
+                              reminderRecipient: e.target.value as
+                                "Paciente" | "Responsável",
+                            })
+                          }
+                        >
+                          <option>Responsável</option>
+                          <option>Paciente</option>
+                        </select>
+                      </label>
+                      <label>
+                        Enviar link do Meet para
+                        <select
+                          value={editing.meetRecipient || "Responsável"}
+                          onChange={(e) =>
+                            setEditing({
+                              ...editing,
+                              meetRecipient: e.target.value as
+                                "Paciente" | "Responsável",
+                            })
+                          }
+                        >
+                          <option>Responsável</option>
+                          <option>Paciente</option>
+                        </select>
+                      </label>
+                    </div>
+                    <label>
+                      Contato de emergência
+                      <input
+                        value={editing.emergencyContact || ""}
+                        onChange={(e) =>
+                          setEditing({
+                            ...editing,
+                            emergencyContact: e.target.value,
+                          })
+                        }
+                        placeholder="Nome e telefone"
+                      />
+                    </label>
+                    <div className="authorization-list">
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={editing.serviceAuthorized || false}
+                          onChange={(e) =>
+                            setEditing({
+                              ...editing,
+                              serviceAuthorized: e.target.checked,
+                            })
+                          }
+                        />
+                        <span>Autorização para atendimento registrada</span>
+                      </label>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={editing.onlineAuthorized || false}
+                          onChange={(e) =>
+                            setEditing({
+                              ...editing,
+                              onlineAuthorized: e.target.checked,
+                            })
+                          }
+                        />
+                        <span>
+                          Autorização para atendimento online registrada
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+              {patientTab === "Responsável" &&
+                editing.patientType !== "Criança ou adolescente" && (
+                  <div className="empty-form-state">
+                    <UserRoundCheck />
+                    <h3>Responsável não necessário</h3>
+                    <p>Este cadastro está configurado como paciente adulto.</p>
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={() =>
+                        setEditing({
+                          ...editing,
+                          patientType: "Criança ou adolescente",
+                        })
+                      }
+                    >
+                      Alterar tipo de paciente
+                    </button>
+                  </div>
+                )}
+              {patientTab === "Financeiro" && (
+                <div className="agreement-box">
+                  <span className="eyebrow">ACORDO FINANCEIRO</span>
+                  <div className="form-row">
+                    <label>
+                      Forma do acordo
+                      <select
+                        value={editing.agreement}
+                        onChange={(e) =>
+                          setEditing({
+                            ...editing,
+                            agreement: e.target.value as Agreement,
+                          })
+                        }
+                      >
+                        <option>Por sessão</option>
+                        <option>Semanal</option>
+                        <option>Quinzenal</option>
+                        <option>Mensal</option>
+                        <option>Pacote</option>
+                      </select>
+                    </label>
+                    <label>
+                      Valor por sessão
+                      <input
+                        type="number"
+                        min="0"
+                        value={editing.value}
+                        onChange={(e) =>
+                          setEditing({
+                            ...editing,
+                            value: Number(e.target.value),
+                          })
+                        }
+                      />
+                    </label>
+                  </div>
+                  <div className="form-row">
+                    <label>
+                      Dia de vencimento
+                      <input
+                        type="number"
+                        min="1"
+                        max="31"
+                        value={editing.dueDay}
+                        onChange={(e) =>
+                          setEditing({
+                            ...editing,
+                            dueDay: Number(e.target.value),
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      Situação
+                      <select
+                        value={editing.status}
+                        onChange={(e) =>
+                          setEditing({
+                            ...editing,
+                            status: e.target.value as PatientProfile["status"],
+                          })
+                        }
+                      >
+                        <option>Ativo</option>
+                        <option>Pausado</option>
+                        <option>Encerrado</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+              )}
+              {patientTab === "Atendimento" && (
+                <div className="patient-room-field">
+                  <span className="eyebrow">SALA FIXA DO GOOGLE MEET</span>
+                  <label>
+                    Link da sala
+                    <input
+                      value={editing.meetUrl || ""}
+                      onChange={(e) =>
+                        setEditing({ ...editing, meetUrl: e.target.value })
+                      }
+                      placeholder="https://meet.google.com/xxx-xxxx-xxx"
+                    />
+                  </label>
+                  {editing.meetUrl && (
+                    <a
+                      className="secondary"
+                      href={editing.meetUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <Video size={16} />
+                      Abrir sala
+                    </a>
+                  )}
+                  <small>
+                    Este link será usado em todos os atendimentos online deste
+                    paciente.
+                  </small>
+                </div>
+              )}
+              {patientTab === "Documentos" && (
+                <section className="patient-form-section">
+                  <div className="form-section-heading">
+                    <div>
+                      <span>ADMINISTRATIVO</span>
+                      <h3>Documentos e observações</h3>
+                      <p>
+                        Espaço para materiais administrativos, sem conteúdo
+                        clínico.
+                      </p>
+                    </div>
+                    <Link2 />
+                  </div>
+                  <label>
+                    Observação administrativa
+                    <textarea
+                      value={editing.notes}
+                      onChange={(e) =>
+                        setEditing({ ...editing, notes: e.target.value })
+                      }
+                      placeholder="Ex.: pagamento no último dia útil do mês"
+                    />
+                  </label>
+                  <label className="document-drop">
+                    <input type="file" multiple />
+                    <span>
+                      <Plus />
+                      <strong>Anexar documento administrativo</strong>
+                      <small>
+                        Contratos, autorizações ou comprovantes. Protótipo sem
+                        envio real.
+                      </small>
+                    </span>
+                  </label>
+                </section>
+              )}
             </div>
-            <label>
-              Observação administrativa
-              <textarea
-                value={editing.notes}
-                onChange={(e) =>
-                  setEditing({ ...editing, notes: e.target.value })
-                }
-                placeholder="Ex.: pagamento no último dia útil do mês"
-              />
-            </label>
             <div className="modal-actions">
               <button
                 type="button"
