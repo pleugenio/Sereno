@@ -33,6 +33,12 @@ import {
   LogOut,
   ShieldCheck,
   UserRoundCheck,
+  CreditCard,
+  Headphones,
+  Megaphone,
+  RotateCcw,
+  SlidersHorizontal,
+  UserX,
 } from "lucide-react";
 
 type View =
@@ -2461,6 +2467,9 @@ function AdminArea({ notify }: { notify: (message: string) => void }) {
       plan: "Fundador",
       status: "Ativo",
       lastAccess: "Hoje, 09:42",
+      trialDays: 0,
+      subscription: "Ativa",
+      since: "13/08/2026",
     },
     {
       name: "Conta de demonstração",
@@ -2468,13 +2477,57 @@ function AdminArea({ notify }: { notify: (message: string) => void }) {
       plan: "Teste",
       status: "Convite",
       lastAccess: "Nunca acessou",
+      trialDays: 15,
+      subscription: "Sem assinatura",
+      since: "14/08/2026",
     },
   ]);
-  const [tab, setTab] = useState<"visao" | "profissionais" | "auditoria">(
-    "visao",
-  );
+  const [tab, setTab] = useState<
+    | "visao"
+    | "profissionais"
+    | "trials"
+    | "assinaturas"
+    | "financeiro"
+    | "suporte"
+    | "avisos"
+    | "auditoria"
+    | "plataforma"
+  >("visao");
   const [inviteModal, setInviteModal] = useState(false);
+  const [selectedProfessional, setSelectedProfessional] = useState<
+    string | null
+  >(null);
   const [invite, setInvite] = useState({ name: "", email: "" });
+  const [tickets, setTickets] = useState([
+    {
+      id: 1,
+      subject: "Como alterar um horário recorrente?",
+      author: "Conta de demonstração",
+      priority: "Normal",
+      status: "Aberto",
+      date: "Hoje, 08:32",
+    },
+    {
+      id: 2,
+      subject: "Dúvida sobre o período de teste",
+      author: "Mariana Souza",
+      priority: "Baixa",
+      status: "Aguardando",
+      date: "Ontem, 16:10",
+    },
+  ]);
+  const [announcement, setAnnouncement] = useState({
+    title: "",
+    message: "",
+    audience: "Todos os profissionais",
+  });
+  const [platformSettings, setPlatformSettings] = useState({
+    trialDays: 15,
+    founderPrice: 19.9,
+    founderLimit: 100,
+    registrationsOpen: true,
+    maintenance: false,
+  });
 
   function addProfessional(event: React.FormEvent) {
     event.preventDefault();
@@ -2487,12 +2540,32 @@ function AdminArea({ notify }: { notify: (message: string) => void }) {
         plan: "Teste",
         status: "Convite",
         lastAccess: "Nunca acessou",
+        trialDays: 15,
+        subscription: "Sem assinatura",
+        since: "Hoje",
       },
     ]);
     setInvite({ name: "", email: "" });
     setInviteModal(false);
     notify("Convite de demonstração criado");
   }
+
+  function updateProfessional(
+    email: string,
+    changes: Partial<(typeof professionals)[number]>,
+    message: string,
+  ) {
+    setProfessionals(
+      professionals.map((person) =>
+        person.email === email ? { ...person, ...changes } : person,
+      ),
+    );
+    notify(message);
+  }
+
+  const currentProfessional = professionals.find(
+    (person) => person.email === selectedProfessional,
+  );
 
   return (
     <div className="admin-area">
@@ -2513,7 +2586,13 @@ function AdminArea({ notify }: { notify: (message: string) => void }) {
           [
             ["visao", "Visão geral"],
             ["profissionais", "Profissionais"],
+            ["trials", "Trials"],
+            ["assinaturas", "Assinaturas"],
+            ["financeiro", "Financeiro"],
+            ["suporte", "Suporte"],
+            ["avisos", "Avisos"],
             ["auditoria", "Auditoria"],
+            ["plataforma", "Plataforma"],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -2536,7 +2615,10 @@ function AdminArea({ notify }: { notify: (message: string) => void }) {
               <div>
                 <small>PROFISSIONAIS</small>
                 <strong>{professionals.length}</strong>
-                <p>1 conta ativa</p>
+                <p>
+                  {professionals.filter((p) => p.status === "Ativo").length}{" "}
+                  conta ativa
+                </p>
               </div>
             </article>
             <article>
@@ -2544,9 +2626,11 @@ function AdminArea({ notify }: { notify: (message: string) => void }) {
                 <Building2 />
               </span>
               <div>
-                <small>ORGANIZAÇÕES</small>
-                <strong>1</strong>
-                <p>Ambiente Sereno</p>
+                <small>TRIALS ATIVOS</small>
+                <strong>
+                  {professionals.filter((p) => p.trialDays > 0).length}
+                </strong>
+                <p>1 termina esta semana</p>
               </div>
             </article>
             <article>
@@ -2555,8 +2639,8 @@ function AdminArea({ notify }: { notify: (message: string) => void }) {
               </span>
               <div>
                 <small>RECEITA MENSAL</small>
-                <strong>R$ 0</strong>
-                <p>Fase de demonstração</p>
+                <strong>R$ 19,90</strong>
+                <p>MRR demonstrativo</p>
               </div>
             </article>
             <article>
@@ -2564,11 +2648,42 @@ function AdminArea({ notify }: { notify: (message: string) => void }) {
                 <ShieldCheck />
               </span>
               <div>
-                <small>SEGURANÇA</small>
-                <strong>2FA</strong>
-                <p>Ativo no acesso</p>
+                <small>SUPORTE</small>
+                <strong>
+                  {
+                    tickets.filter((ticket) => ticket.status !== "Resolvido")
+                      .length
+                  }
+                </strong>
+                <p>chamados pendentes</p>
               </div>
             </article>
+          </section>
+          <section className="admin-alerts">
+            <button onClick={() => setTab("trials")}>
+              <Clock3 />
+              <span>
+                <strong>1 trial termina nesta semana</strong>
+                <small>Revise antes do encerramento</small>
+              </span>
+              <ArrowRight />
+            </button>
+            <button onClick={() => setTab("assinaturas")}>
+              <CreditCard />
+              <span>
+                <strong>1 assinatura ativa</strong>
+                <small>MRR atual de R$ 19,90</small>
+              </span>
+              <ArrowRight />
+            </button>
+            <button onClick={() => setTab("suporte")}>
+              <Headphones />
+              <span>
+                <strong>2 chamados aguardam resposta</strong>
+                <small>Mais antigo aberto ontem</small>
+              </span>
+              <ArrowRight />
+            </button>
           </section>
           <section className="admin-columns">
             <article className="admin-panel">
@@ -2681,17 +2796,442 @@ function AdminArea({ notify }: { notify: (message: string) => void }) {
                   </b>
                 </span>
                 <span>{person.lastAccess}</span>
-                <button
-                  onClick={() =>
-                    notify(`Opções administrativas de ${person.name}`)
-                  }
-                >
+                <button onClick={() => setSelectedProfessional(person.email)}>
                   •••
                 </button>
               </div>
             ))}
           </div>
         </section>
+      )}
+
+      {tab === "trials" && (
+        <section className="admin-panel operational-panel">
+          <div className="panel-heading">
+            <div>
+              <span>PERÍODO GRATUITO</span>
+              <h2>Trials em andamento</h2>
+            </div>
+            <Clock3 />
+          </div>
+          <div className="admin-summary-row">
+            <div>
+              <strong>1</strong>
+              <span>Trial ativo</span>
+            </div>
+            <div>
+              <strong>15 dias</strong>
+              <span>Período padrão</span>
+            </div>
+            <div>
+              <strong>0%</strong>
+              <span>Conversão inicial</span>
+            </div>
+          </div>
+          <div className="ops-list">
+            {professionals
+              .filter((p) => p.trialDays > 0)
+              .map((person) => (
+                <article key={person.email}>
+                  <span className="person-cell">
+                    <i>{initials(person.name)}</i>
+                    <span>
+                      <strong>{person.name}</strong>
+                      <small>{person.email}</small>
+                    </span>
+                  </span>
+                  <span>
+                    <small>DIAS RESTANTES</small>
+                    <strong>{person.trialDays} dias</strong>
+                  </span>
+                  <span>
+                    <small>INÍCIO</small>
+                    <strong>{person.since}</strong>
+                  </span>
+                  <div>
+                    <button
+                      className="secondary"
+                      onClick={() =>
+                        updateProfessional(
+                          person.email,
+                          { trialDays: person.trialDays + 7 },
+                          "Trial prolongado por mais 7 dias",
+                        )
+                      }
+                    >
+                      <RotateCcw size={15} />
+                      +7 dias
+                    </button>
+                    <button
+                      onClick={() => setSelectedProfessional(person.email)}
+                    >
+                      Gerenciar
+                    </button>
+                  </div>
+                </article>
+              ))}
+          </div>
+        </section>
+      )}
+
+      {tab === "assinaturas" && (
+        <section className="admin-panel operational-panel">
+          <div className="panel-heading">
+            <div>
+              <span>COBRANÇAS RECORRENTES</span>
+              <h2>Assinaturas</h2>
+            </div>
+            <CreditCard />
+          </div>
+          <div className="admin-summary-row">
+            <div>
+              <strong>1</strong>
+              <span>Ativa</span>
+            </div>
+            <div>
+              <strong>R$ 19,90</strong>
+              <span>Ticket médio</span>
+            </div>
+            <div>
+              <strong>0</strong>
+              <span>Inadimplentes</span>
+            </div>
+          </div>
+          <div className="subscription-list">
+            {professionals.map((person) => (
+              <div key={person.email}>
+                <span className="person-cell">
+                  <i>{initials(person.name)}</i>
+                  <span>
+                    <strong>{person.name}</strong>
+                    <small>{person.email}</small>
+                  </span>
+                </span>
+                <span>
+                  <small>PLANO</small>
+                  <strong>{person.plan}</strong>
+                </span>
+                <span>
+                  <small>ASSINATURA</small>
+                  <b
+                    className={`admin-status ${person.subscription === "Ativa" ? "ativo" : "convite"}`}
+                  >
+                    {person.subscription}
+                  </b>
+                </span>
+                <span>
+                  <small>VALOR</small>
+                  <strong>
+                    {person.subscription === "Ativa" ? "R$ 19,90" : "—"}
+                  </strong>
+                </span>
+                <button onClick={() => setSelectedProfessional(person.email)}>
+                  Abrir
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {tab === "financeiro" && (
+        <>
+          <section className="admin-metrics finance-admin-metrics">
+            <article>
+              <span className="metric-icon">
+                <TrendingUp />
+              </span>
+              <div>
+                <small>MRR</small>
+                <strong>R$ 19,90</strong>
+                <p>receita recorrente</p>
+              </div>
+            </article>
+            <article>
+              <span className="metric-icon blue">
+                <CircleDollarSign />
+              </span>
+              <div>
+                <small>RECEBIDO NO MÊS</small>
+                <strong>R$ 19,90</strong>
+                <p>1 pagamento</p>
+              </div>
+            </article>
+            <article>
+              <span className="metric-icon amber">
+                <CalendarClock />
+              </span>
+              <div>
+                <small>PREVISÃO</small>
+                <strong>R$ 39,80</strong>
+                <p>próximos 30 dias</p>
+              </div>
+            </article>
+            <article>
+              <span className="metric-icon purple">
+                <AlertCircle />
+              </span>
+              <div>
+                <small>PENDÊNCIAS</small>
+                <strong>0</strong>
+                <p>nenhuma cobrança</p>
+              </div>
+            </article>
+          </section>
+          <section className="admin-panel transactions-panel">
+            <div className="panel-heading">
+              <div>
+                <span>MOVIMENTAÇÕES</span>
+                <h2>Financeiro do Sereno</h2>
+              </div>
+              <button
+                className="secondary"
+                onClick={() =>
+                  notify("Relatório financeiro preparado para exportação")
+                }
+              >
+                Exportar relatório
+              </button>
+            </div>
+            <div className="transaction-row transaction-head">
+              <span>Data</span>
+              <span>Profissional</span>
+              <span>Descrição</span>
+              <span>Forma</span>
+              <span>Valor</span>
+              <span>Status</span>
+            </div>
+            <div className="transaction-row">
+              <span>14/08/2026</span>
+              <span>Kamilla Campos Eugenio</span>
+              <span>Plano Fundador</span>
+              <span>Pix</span>
+              <strong>R$ 19,90</strong>
+              <b className="admin-status ativo">Pago</b>
+            </div>
+          </section>
+        </>
+      )}
+
+      {tab === "suporte" && (
+        <section className="admin-panel support-panel">
+          <div className="panel-heading">
+            <div>
+              <span>ATENDIMENTO</span>
+              <h2>Solicitações de suporte</h2>
+            </div>
+            <Headphones />
+          </div>
+          <div className="ticket-list">
+            {tickets.map((ticket) => (
+              <article key={ticket.id}>
+                <span
+                  className={`ticket-priority ${ticket.priority.toLowerCase()}`}
+                >
+                  {ticket.priority}
+                </span>
+                <div>
+                  <strong>{ticket.subject}</strong>
+                  <small>
+                    {ticket.author} · {ticket.date}
+                  </small>
+                </div>
+                <b
+                  className={`admin-status ${ticket.status === "Aberto" ? "convite" : "ativo"}`}
+                >
+                  {ticket.status}
+                </b>
+                <button
+                  className="secondary"
+                  onClick={() => {
+                    setTickets(
+                      tickets.map((item) =>
+                        item.id === ticket.id
+                          ? { ...item, status: "Resolvido" }
+                          : item,
+                      ),
+                    );
+                    notify("Chamado marcado como resolvido");
+                  }}
+                >
+                  {ticket.status === "Resolvido" ? "Resolvido" : "Responder"}
+                </button>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {tab === "avisos" && (
+        <section className="admin-notice-layout">
+          <form
+            className="admin-panel notice-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              notify("Aviso publicado no protótipo");
+              setAnnouncement({ ...announcement, title: "", message: "" });
+            }}
+          >
+            <div className="panel-heading">
+              <div>
+                <span>COMUNICAÇÃO</span>
+                <h2>Publicar um aviso</h2>
+              </div>
+              <Megaphone />
+            </div>
+            <label>
+              Título
+              <input
+                value={announcement.title}
+                onChange={(e) =>
+                  setAnnouncement({ ...announcement, title: e.target.value })
+                }
+                placeholder="Ex.: Nova versão disponível"
+                required
+              />
+            </label>
+            <label>
+              Público
+              <select
+                value={announcement.audience}
+                onChange={(e) =>
+                  setAnnouncement({ ...announcement, audience: e.target.value })
+                }
+              >
+                <option>Todos os profissionais</option>
+                <option>Usuários em trial</option>
+                <option>Assinantes ativos</option>
+              </select>
+            </label>
+            <label>
+              Mensagem
+              <textarea
+                value={announcement.message}
+                onChange={(e) =>
+                  setAnnouncement({ ...announcement, message: e.target.value })
+                }
+                placeholder="Escreva uma mensagem breve e clara..."
+                required
+              />
+            </label>
+            <button className="primary">
+              <Megaphone size={16} />
+              Publicar aviso
+            </button>
+          </form>
+          <aside className="admin-panel notice-preview">
+            <span>PRÉVIA</span>
+            <div>
+              <Megaphone />
+              <small>{announcement.audience}</small>
+              <strong>{announcement.title || "Título do seu aviso"}</strong>
+              <p>
+                {announcement.message ||
+                  "A mensagem aparecerá aqui para você conferir antes de publicar."}
+              </p>
+            </div>
+          </aside>
+        </section>
+      )}
+
+      {tab === "plataforma" && (
+        <form
+          className="admin-panel platform-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            notify("Configurações da plataforma salvas");
+          }}
+        >
+          <div className="panel-heading">
+            <div>
+              <span>REGRAS COMERCIAIS</span>
+              <h2>Configurações da plataforma</h2>
+            </div>
+            <SlidersHorizontal />
+          </div>
+          <div className="form-row">
+            <label>
+              Duração padrão do trial
+              <input
+                type="number"
+                value={platformSettings.trialDays}
+                onChange={(e) =>
+                  setPlatformSettings({
+                    ...platformSettings,
+                    trialDays: Number(e.target.value),
+                  })
+                }
+              />
+              <small>dias</small>
+            </label>
+            <label>
+              Preço do Plano Fundador
+              <input
+                type="number"
+                step="0.01"
+                value={platformSettings.founderPrice}
+                onChange={(e) =>
+                  setPlatformSettings({
+                    ...platformSettings,
+                    founderPrice: Number(e.target.value),
+                  })
+                }
+              />
+              <small>reais por mês</small>
+            </label>
+            <label>
+              Limite de fundadores
+              <input
+                type="number"
+                value={platformSettings.founderLimit}
+                onChange={(e) =>
+                  setPlatformSettings({
+                    ...platformSettings,
+                    founderLimit: Number(e.target.value),
+                  })
+                }
+              />
+              <small>contas</small>
+            </label>
+          </div>
+          <div className="platform-switches">
+            <label>
+              <span>
+                <strong>Novos cadastros</strong>
+                <small>Permitir criação de novas contas trial</small>
+              </span>
+              <input
+                type="checkbox"
+                checked={platformSettings.registrationsOpen}
+                onChange={(e) =>
+                  setPlatformSettings({
+                    ...platformSettings,
+                    registrationsOpen: e.target.checked,
+                  })
+                }
+              />
+            </label>
+            <label>
+              <span>
+                <strong>Modo de manutenção</strong>
+                <small>Exibir uma página de manutenção para usuários</small>
+              </span>
+              <input
+                type="checkbox"
+                checked={platformSettings.maintenance}
+                onChange={(e) =>
+                  setPlatformSettings({
+                    ...platformSettings,
+                    maintenance: e.target.checked,
+                  })
+                }
+              />
+            </label>
+          </div>
+          <div className="modal-actions">
+            <button className="primary">Salvar configurações</button>
+          </div>
+        </form>
       )}
 
       {tab === "auditoria" && (
@@ -2728,6 +3268,114 @@ function AdminArea({ notify }: { notify: (message: string) => void }) {
             </div>
           ))}
         </section>
+      )}
+
+      {currentProfessional && (
+        <div
+          className="modal-backdrop"
+          onMouseDown={() => setSelectedProfessional(null)}
+        >
+          <div
+            className="modal account-modal"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div className="modal-head">
+              <div>
+                <span className="eyebrow">GESTÃO DA CONTA</span>
+                <h2>{currentProfessional.name}</h2>
+                <p>{currentProfessional.email}</p>
+              </div>
+              <button onClick={() => setSelectedProfessional(null)}>
+                <X />
+              </button>
+            </div>
+            <div className="account-overview">
+              <div>
+                <small>PLANO</small>
+                <strong>{currentProfessional.plan}</strong>
+              </div>
+              <div>
+                <small>STATUS</small>
+                <strong>{currentProfessional.status}</strong>
+              </div>
+              <div>
+                <small>TRIAL</small>
+                <strong>
+                  {currentProfessional.trialDays > 0
+                    ? `${currentProfessional.trialDays} dias`
+                    : "Encerrado"}
+                </strong>
+              </div>
+              <div>
+                <small>ASSINATURA</small>
+                <strong>{currentProfessional.subscription}</strong>
+              </div>
+            </div>
+            <div className="account-actions">
+              <button
+                onClick={() =>
+                  updateProfessional(
+                    currentProfessional.email,
+                    { trialDays: currentProfessional.trialDays + 7 },
+                    "Trial prolongado por 7 dias",
+                  )
+                }
+              >
+                <RotateCcw />
+                Prolongar trial por 7 dias
+              </button>
+              <button
+                onClick={() =>
+                  updateProfessional(
+                    currentProfessional.email,
+                    {
+                      plan: "Fundador",
+                      subscription: "Ativa",
+                      status: "Ativo",
+                      trialDays: 0,
+                    },
+                    "Plano Fundador ativado",
+                  )
+                }
+              >
+                <CreditCard />
+                Ativar Plano Fundador
+              </button>
+              <button
+                className="danger-soft"
+                onClick={() =>
+                  updateProfessional(
+                    currentProfessional.email,
+                    {
+                      status:
+                        currentProfessional.status === "Suspenso"
+                          ? "Ativo"
+                          : "Suspenso",
+                    },
+                    currentProfessional.status === "Suspenso"
+                      ? "Conta reativada"
+                      : "Conta suspensa",
+                  )
+                }
+              >
+                <UserX />
+                {currentProfessional.status === "Suspenso"
+                  ? "Reativar conta"
+                  : "Suspender conta"}
+              </button>
+            </div>
+            <div className="admin-privacy">
+              <ShieldCheck />
+              <div>
+                <strong>Limite de privacidade</strong>
+                <p>
+                  Estas ações afetam somente o acesso e a assinatura. Nenhum
+                  conteúdo de paciente fica disponível aqui.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {inviteModal && (
