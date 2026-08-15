@@ -39,6 +39,7 @@ import {
   RotateCcw,
   SlidersHorizontal,
   UserX,
+  Download,
 } from "lucide-react";
 
 type View =
@@ -60,7 +61,7 @@ type CalendarBlock = {
   allDay: boolean;
   recurring: boolean;
 };
-type Status = "Confirmado" | "Aguardando" | "Realizado" | "Cancelado";
+type Status = "Confirmado" | "Aguardando" | "Realizado" | "Cancelado" | "Falta";
 type PaymentStatus = "Pendente" | "Pago" | "Parcial" | "Isento" | "Cancelado";
 type Agreement = "Por sessão" | "Semanal" | "Quinzenal" | "Mensal" | "Pacote";
 type PatientProfile = {
@@ -102,6 +103,9 @@ type Appointment = {
   paymentMethod?: string;
   paymentDate?: string;
   meetUrl?: string;
+  documentationStatus?: "Pendente" | "Concluído" | "Não se aplica";
+  receiptStatus?: "Pendente" | "Emitido" | "Não se aplica";
+  nextAppointment?: string;
 };
 type AppSettings = {
   theme: "sereno" | "oceano" | "lavanda" | "terracota";
@@ -1102,6 +1106,18 @@ export default function App() {
   const [modal, setModal] = useState(false);
   const [patientModal, setPatientModal] = useState(false);
   const [selected, setSelected] = useState<Appointment | null>(null);
+  const [closingSession, setClosingSession] = useState<Appointment | null>(
+    null,
+  );
+  const [closingForm, setClosingForm] = useState({
+    outcome: "Realizado" as "Realizado" | "Cancelado" | "Falta",
+    paymentStatus: "Pendente" as PaymentStatus,
+    paymentMethod: "Pix",
+    amount: 180,
+    documentationDone: false,
+    receiptDone: false,
+    nextAppointment: "",
+  });
   const [meetDraft, setMeetDraft] = useState("");
   const [search, setSearch] = useState("");
   const [patientToOpen, setPatientToOpen] = useState<string | null>(null);
@@ -1226,6 +1242,82 @@ export default function App() {
     save(next);
     setSelected(next.find((a) => a.id === id) || null);
     notify(message);
+  }
+  function openClosingWorkflow(appointment: Appointment) {
+    setClosingSession(appointment);
+    setClosingForm({
+      outcome: appointment.status === "Cancelado" ? "Cancelado" : "Realizado",
+      paymentStatus:
+        appointment.paymentStatus ?? (appointment.paid ? "Pago" : "Pendente"),
+      paymentMethod: appointment.paymentMethod || "Pix",
+      amount: appointment.amount ?? 180,
+      documentationDone: appointment.documentationStatus === "Concluído",
+      receiptDone: appointment.receiptStatus === "Emitido",
+      nextAppointment: appointment.nextAppointment || "",
+    });
+  }
+  function finishSession(event: React.FormEvent) {
+    event.preventDefault();
+    if (!closingSession) return;
+    const paid = closingForm.paymentStatus === "Pago";
+    const changes: Partial<Appointment> = {
+      status: closingForm.outcome,
+      paid,
+      amount: closingForm.amount,
+      paymentStatus:
+        closingForm.outcome === "Falta" &&
+        closingForm.paymentStatus === "Pendente"
+          ? "Pendente"
+          : closingForm.paymentStatus,
+      paymentMethod:
+        paid || closingForm.paymentStatus === "Parcial"
+          ? closingForm.paymentMethod
+          : undefined,
+      paymentDate:
+        paid || closingForm.paymentStatus === "Parcial"
+          ? new Date().toISOString().slice(0, 10)
+          : undefined,
+      documentationStatus: closingForm.documentationDone
+        ? "Concluído"
+        : "Pendente",
+      receiptStatus:
+        closingForm.paymentStatus === "Isento"
+          ? "Não se aplica"
+          : closingForm.receiptDone
+            ? "Emitido"
+            : "Pendente",
+      nextAppointment: closingForm.nextAppointment || undefined,
+    };
+    let nextAppointments = appointments.map((appointment) =>
+      appointment.id === closingSession.id
+        ? { ...appointment, ...changes }
+        : appointment,
+    );
+    if (closingForm.nextAppointment) {
+      const nextDate = new Date(closingForm.nextAppointment);
+      nextAppointments = [
+        ...nextAppointments,
+        {
+          id: Date.now(),
+          patient: closingSession.patient,
+          day: Math.min(5, Math.max(1, nextDate.getDay())),
+          time: closingForm.nextAppointment.slice(11, 16),
+          status: "Aguardando",
+          mode: closingSession.mode,
+          paid: false,
+          amount: closingForm.amount,
+          paymentStatus: "Pendente",
+        },
+      ];
+    }
+    save(nextAppointments);
+    notify(
+      closingForm.nextAppointment
+        ? "Atendimento fechado e próxima sessão agendada"
+        : "Atendimento fechado e pendências organizadas",
+    );
+    setClosingSession(null);
+    setSelected(null);
   }
   function patientMeet(a: Appointment) {
     return (
@@ -1354,6 +1446,25 @@ export default function App() {
     setSettings(next);
     localStorage.setItem("sereno-settings", JSON.stringify(next));
     notify("Configurações salvas");
+  }
+  function exportAdministrativeData() {
+    const backup = {
+      exportedAt: new Date().toISOString(),
+      version: 1,
+      appointments,
+      patients: profiles,
+      settings,
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `sereno-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    notify("Backup administrativo preparado para download");
   }
 
   function beginLogin(event: React.FormEvent) {
@@ -1649,10 +1760,15 @@ export default function App() {
               profiles={profiles}
               saveProfile={saveProfile}
               update={updateAppointment}
+              notify={notify}
             />
           )}
           {view === "configuracoes" && (
-            <SettingsPage settings={settings} save={saveSettings} />
+            <SettingsPage
+              settings={settings}
+              save={saveSettings}
+              exportData={exportAdministrativeData}
+            />
           )}
           {view === "administracao" && <AdminArea notify={notify} />}
         </div>
@@ -2013,6 +2129,13 @@ export default function App() {
             )}
             <div className="detail-actions">
               <button
+                className="primary finish-session-button"
+                onClick={() => openClosingWorkflow(selected)}
+              >
+                <CheckCircle2 size={17} />
+                Finalizar atendimento
+              </button>
+              <button
                 className="secondary"
                 onClick={() =>
                   updateAppointment(
@@ -2071,6 +2194,199 @@ export default function App() {
               </button>
             </div>
           </section>
+        </div>
+      )}
+      {closingSession && (
+        <div
+          className="modal-backdrop"
+          onMouseDown={() => setClosingSession(null)}
+        >
+          <form
+            className="modal closing-workflow-modal"
+            onSubmit={finishSession}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="modal-head">
+              <div>
+                <span className="eyebrow">FECHAMENTO EM UM MINUTO</span>
+                <h2>{closingSession.patient}</h2>
+                <p>
+                  Resolva as pontas administrativas antes do próximo
+                  atendimento.
+                </p>
+              </div>
+              <button type="button" onClick={() => setClosingSession(null)}>
+                <X />
+              </button>
+            </div>
+            <div className="closing-progress">
+              <span className="active">
+                <CheckCircle2 /> Sessão
+              </span>
+              <span>
+                <WalletCards /> Pagamento
+              </span>
+              <span>
+                <CalendarClock /> Próxima sessão
+              </span>
+            </div>
+            <section className="closing-section">
+              <div>
+                <strong>Como terminou?</strong>
+                <small>Defina o resultado do atendimento.</small>
+              </div>
+              <div className="closing-choice-row">
+                {(["Realizado", "Cancelado", "Falta"] as const).map(
+                  (outcome) => (
+                    <button
+                      type="button"
+                      key={outcome}
+                      className={
+                        closingForm.outcome === outcome ? "selected" : ""
+                      }
+                      onClick={() =>
+                        setClosingForm({ ...closingForm, outcome })
+                      }
+                    >
+                      {outcome}
+                    </button>
+                  ),
+                )}
+              </div>
+            </section>
+            <section className="closing-section">
+              <div>
+                <strong>Pagamento</strong>
+                <small>Atualize o financeiro junto com a sessão.</small>
+              </div>
+              <div className="form-row">
+                <label>
+                  Situação
+                  <select
+                    value={closingForm.paymentStatus}
+                    onChange={(event) =>
+                      setClosingForm({
+                        ...closingForm,
+                        paymentStatus: event.target.value as PaymentStatus,
+                      })
+                    }
+                  >
+                    <option>Pendente</option>
+                    <option>Pago</option>
+                    <option>Parcial</option>
+                    <option>Isento</option>
+                    <option>Cancelado</option>
+                  </select>
+                </label>
+                <label>
+                  Valor
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={closingForm.amount}
+                    onChange={(event) =>
+                      setClosingForm({
+                        ...closingForm,
+                        amount: Number(event.target.value),
+                      })
+                    }
+                  />
+                </label>
+              </div>
+              {(closingForm.paymentStatus === "Pago" ||
+                closingForm.paymentStatus === "Parcial") && (
+                <label>
+                  Forma de pagamento
+                  <select
+                    value={closingForm.paymentMethod}
+                    onChange={(event) =>
+                      setClosingForm({
+                        ...closingForm,
+                        paymentMethod: event.target.value,
+                      })
+                    }
+                  >
+                    <option>Pix</option>
+                    <option>Dinheiro</option>
+                    <option>Cartão</option>
+                    <option>Transferência</option>
+                  </select>
+                </label>
+              )}
+            </section>
+            <section className="closing-section">
+              <div>
+                <strong>Próxima sessão</strong>
+                <small>
+                  Opcional. Registre a combinação feita com o paciente.
+                </small>
+              </div>
+              <input
+                aria-label="Próxima sessão"
+                type="datetime-local"
+                value={closingForm.nextAppointment}
+                onChange={(event) =>
+                  setClosingForm({
+                    ...closingForm,
+                    nextAppointment: event.target.value,
+                  })
+                }
+              />
+            </section>
+            <section className="closing-checks">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={closingForm.documentationDone}
+                  onChange={(event) =>
+                    setClosingForm({
+                      ...closingForm,
+                      documentationDone: event.target.checked,
+                    })
+                  }
+                />
+                <span>
+                  <strong>Registro documental atualizado</strong>
+                  <small>
+                    O Sereno registra apenas a conclusão, sem conteúdo clínico
+                    nesta etapa.
+                  </small>
+                </span>
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={closingForm.receiptDone}
+                  onChange={(event) =>
+                    setClosingForm({
+                      ...closingForm,
+                      receiptDone: event.target.checked,
+                    })
+                  }
+                />
+                <span>
+                  <strong>Recibo emitido no Receita Saúde</strong>
+                  <small>
+                    Marcação de controle; não representa integração com a
+                    Receita Federal.
+                  </small>
+                </span>
+              </label>
+            </section>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setClosingSession(null)}
+              >
+                Voltar
+              </button>
+              <button className="primary">
+                <Check size={18} /> Concluir fechamento
+              </button>
+            </div>
+          </form>
         </div>
       )}
       {toast && (
@@ -3579,6 +3895,11 @@ function Overview({
       (a.paymentStatus ?? (a.paid ? "Pago" : "Pendente")) === "Pendente" &&
       a.status === "Realizado",
   );
+  const documentationPending = appointments.filter(
+    (appointment) =>
+      appointment.status === "Realizado" &&
+      appointment.documentationStatus !== "Concluído",
+  );
   const received = appointments
     .filter((a) => a.paid)
     .reduce((s, a) => s + (a.amount ?? 180), 0);
@@ -3590,7 +3911,8 @@ function Overview({
           <h1>Bom dia, Kamilla.</h1>
           <p>
             Sua rotina está quase em ordem. Há{" "}
-            {awaiting.length + overdue.length} pontos para resolver.
+            {awaiting.length + overdue.length + documentationPending.length}{" "}
+            pontos para resolver.
           </p>
         </div>
         <button className="primary" onClick={() => setModal(true)}>
@@ -3605,7 +3927,10 @@ function Overview({
               <Sparkles size={16} />
               Para cuidar agora
             </span>
-            <small>{awaiting.length + overdue.length} pendências</small>
+            <small>
+              {awaiting.length + overdue.length + documentationPending.length}{" "}
+              pendências
+            </small>
           </div>
           {awaiting.slice(0, 2).map((a) => (
             <button
@@ -3644,13 +3969,33 @@ function Overview({
               <ArrowRight />
             </button>
           ))}
-          {awaiting.length === 0 && overdue.length === 0 && (
-            <div className="all-clear">
-              <CheckCircle2 />
-              <strong>Tudo resolvido por aqui.</strong>
-              <span>Você pode focar nos atendimentos.</span>
-            </div>
-          )}
+          {documentationPending.slice(0, 1).map((appointment) => (
+            <button
+              className="decision-row"
+              key={`documentation-${appointment.id}`}
+              onClick={() => select(appointment)}
+            >
+              <span className="decision-icon mint">
+                <CheckCircle2 />
+              </span>
+              <span>
+                <strong>
+                  Concluir registro documental de {appointment.patient}
+                </strong>
+                <small>Atendimento realizado · conteúdo não exibido</small>
+              </span>
+              <ArrowRight />
+            </button>
+          ))}
+          {awaiting.length === 0 &&
+            overdue.length === 0 &&
+            documentationPending.length === 0 && (
+              <div className="all-clear">
+                <CheckCircle2 />
+                <strong>Tudo resolvido por aqui.</strong>
+                <span>Você pode focar nos atendimentos.</span>
+              </div>
+            )}
           <button className="quiet-link" onClick={() => go("agenda")}>
             Ver agenda completa <ArrowRight size={15} />
           </button>
@@ -4474,12 +4819,17 @@ function Finance({
   profiles,
   saveProfile,
   update,
+  notify,
 }: {
   appointments: Appointment[];
   profiles: PatientProfile[];
   saveProfile: (profile: PatientProfile) => void;
   update: (id: number, changes: Partial<Appointment>, message: string) => void;
+  notify: (message: string) => void;
 }) {
+  const [financeView, setFinanceView] = useState<
+    "Movimentações" | "Receita Saúde"
+  >("Movimentações");
   const [filter, setFilter] = useState<"Todos" | PaymentStatus>("Todos");
   const [editing, setEditing] = useState<Appointment | null>(null);
   const [patientEditing, setPatientEditing] = useState<PatientProfile | null>(
@@ -4512,6 +4862,48 @@ function Finance({
   const expected = rows
     .filter((a) => !["Isento", "Cancelado"].includes(a.paymentStatus))
     .reduce((sum, a) => sum + a.amount, 0);
+  const cancelledLoss = rows
+    .filter((a) => a.paymentStatus === "Cancelado" || a.status === "Cancelado")
+    .reduce((sum, a) => sum + a.amount, 0);
+  const revenueAppointments = rows.filter(
+    (appointment) => appointment.paymentStatus !== "Cancelado",
+  ).length;
+  const averageTicket = revenueAppointments
+    ? expected / revenueAppointments
+    : 0;
+  const occupancy = appointments.length
+    ? Math.round(
+        (appointments.filter((a) => a.status !== "Cancelado").length /
+          appointments.length) *
+          100,
+      )
+    : 0;
+  const receiptPending = rows.filter(
+    (a) =>
+      (a.paymentStatus === "Pago" || a.paymentStatus === "Parcial") &&
+      a.receiptStatus !== "Emitido",
+  );
+  async function copyReceiptData(appointment: Appointment) {
+    const profile = profiles.find((item) => item.name === appointment.patient);
+    const content = `Beneficiário: ${appointment.patient}\nCPF: ${profile?.cpf || "não informado"}\nValor: ${money(appointment.amount ?? profile?.value ?? 180)}\nData do pagamento: ${appointment.paymentDate || "não informada"}`;
+    await navigator.clipboard.writeText(content);
+    notify("Dados copiados para preencher no Receita Saúde");
+  }
+  function preparePaymentReminder(appointment: Appointment) {
+    const profile = profiles.find((item) => item.name === appointment.patient);
+    const phone = profile?.phone.replace(/\D/g, "") || "";
+    if (!phone) {
+      notify("Cadastre o telefone do paciente antes de preparar a mensagem");
+      return;
+    }
+    const firstName = appointment.patient.split(" ")[0];
+    const message = `Olá, ${firstName}! Passando para organizar o pagamento do atendimento no valor de ${money(appointment.amount ?? profile?.value ?? 180)}. Se já tiver realizado, pode desconsiderar esta mensagem. Obrigada!`;
+    window.open(
+      `https://wa.me/${phone.startsWith("55") ? phone : `55${phone}`}?text=${encodeURIComponent(message)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  }
   function openPayment(a: Appointment) {
     setEditing(a);
     setPayment({
@@ -4607,61 +4999,180 @@ function Finance({
           </p>
         </div>
       </section>
-      <section className="finance-toolbar">
+      <section className="financial-health">
         <div>
-          {(
-            [
-              "Todos",
-              "Pendente",
-              "Pago",
-              "Parcial",
-              "Isento",
-              "Cancelado",
-            ] as const
-          ).map((item) => (
-            <button
-              key={item}
-              className={filter === item ? "active" : ""}
-              onClick={() => setFilter(item)}
-            >
-              {item}
-            </button>
-          ))}
+          <small>OCUPAÇÃO DA AGENDA</small>
+          <strong>{occupancy}%</strong>
+          <span>dos horários cadastrados ativos</span>
         </div>
-        <span>{visible.length} registros</span>
+        <div>
+          <small>VALOR MÉDIO</small>
+          <strong>{money(averageTicket)}</strong>
+          <span>por atendimento previsto</span>
+        </div>
+        <div>
+          <small>IMPACTO DE CANCELAMENTOS</small>
+          <strong>{money(cancelledLoss)}</strong>
+          <span>receita não realizada</span>
+        </div>
+        <div>
+          <small>RECIBOS A CONFERIR</small>
+          <strong>{receiptPending.length}</strong>
+          <span>pagamentos sem baixa de recibo</span>
+        </div>
       </section>
-      <section className="list-card finance-list">
-        <div className="finance-head">
-          <span>Paciente</span>
-          <span>Atendimento</span>
-          <span>Valor</span>
-          <span>Situação</span>
-          <span>Forma</span>
-          <span></span>
-        </div>
-        {visible.map((a) => (
-          <div className="finance-row" key={a.id}>
-            <button
-              className="patient finance-patient"
-              onClick={() => openPatient(a.patient)}
-            >
-              <div className="avatar soft">{initials(a.patient)}</div>
-              <strong>{a.patient}</strong>
-            </button>
-            <span>
-              {dates[a.day - 1]} ago. · {a.time}
-            </span>
-            <strong>{money(a.amount)}</strong>
-            <span className={`payment-badge ${a.paymentStatus.toLowerCase()}`}>
-              {a.paymentStatus}
-            </span>
-            <span>{a.paymentMethod || "—"}</span>
-            <button className="secondary small" onClick={() => openPayment(a)}>
-              Editar
-            </button>
-          </div>
+      <div className="finance-view-tabs">
+        {(["Movimentações", "Receita Saúde"] as const).map((item) => (
+          <button
+            key={item}
+            className={financeView === item ? "active" : ""}
+            onClick={() => setFinanceView(item)}
+          >
+            {item}
+          </button>
         ))}
-      </section>
+      </div>
+      {financeView === "Movimentações" && (
+        <>
+          <section className="finance-toolbar">
+            <div>
+              {(
+                [
+                  "Todos",
+                  "Pendente",
+                  "Pago",
+                  "Parcial",
+                  "Isento",
+                  "Cancelado",
+                ] as const
+              ).map((item) => (
+                <button
+                  key={item}
+                  className={filter === item ? "active" : ""}
+                  onClick={() => setFilter(item)}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+            <span>{visible.length} registros</span>
+          </section>
+          <section className="list-card finance-list">
+            <div className="finance-head">
+              <span>Paciente</span>
+              <span>Atendimento</span>
+              <span>Valor</span>
+              <span>Situação</span>
+              <span>Forma</span>
+              <span></span>
+            </div>
+            {visible.map((a) => (
+              <div className="finance-row" key={a.id}>
+                <button
+                  className="patient finance-patient"
+                  onClick={() => openPatient(a.patient)}
+                >
+                  <div className="avatar soft">{initials(a.patient)}</div>
+                  <strong>{a.patient}</strong>
+                </button>
+                <span>
+                  {dates[a.day - 1]} ago. · {a.time}
+                </span>
+                <strong>{money(a.amount)}</strong>
+                <span
+                  className={`payment-badge ${a.paymentStatus.toLowerCase()}`}
+                >
+                  {a.paymentStatus}
+                </span>
+                <span>{a.paymentMethod || "—"}</span>
+                <button
+                  className="secondary small"
+                  onClick={() => openPayment(a)}
+                >
+                  Editar
+                </button>
+              </div>
+            ))}
+          </section>
+        </>
+      )}
+      {financeView === "Receita Saúde" && (
+        <section className="receipt-center">
+          <div className="receipt-center-head">
+            <div>
+              <span className="eyebrow">CONTROLE FISCAL</span>
+              <h2>Preparação para o Receita Saúde</h2>
+              <p>
+                Confira os dados, copie e faça a emissão no aplicativo oficial
+                da Receita Federal.
+              </p>
+            </div>
+            <ShieldCheck />
+          </div>
+          <div className="receipt-warning">
+            <AlertCircle />
+            <span>
+              <strong>O Sereno ainda não emite recibos oficialmente.</strong>{" "}
+              Esta área organiza o trabalho e registra a conferência feita pela
+              profissional.
+            </span>
+          </div>
+          <div className="receipt-list">
+            {receiptPending.map((appointment) => {
+              const profile = profiles.find(
+                (item) => item.name === appointment.patient,
+              );
+              return (
+                <article key={appointment.id}>
+                  <div className="patient">
+                    <span className="avatar soft">
+                      {initials(appointment.patient)}
+                    </span>
+                    <span>
+                      <strong>{appointment.patient}</strong>
+                      <small>CPF {profile?.cpf || "não informado"}</small>
+                    </span>
+                  </div>
+                  <div>
+                    <small>PAGAMENTO</small>
+                    <strong>{money(appointment.amount)}</strong>
+                    <span>
+                      {appointment.paymentDate || "Data não informada"}
+                    </span>
+                  </div>
+                  <div className="receipt-actions">
+                    <button
+                      className="secondary"
+                      onClick={() => copyReceiptData(appointment)}
+                    >
+                      Copiar dados
+                    </button>
+                    <button
+                      className="primary"
+                      onClick={() =>
+                        update(
+                          appointment.id,
+                          { receiptStatus: "Emitido" },
+                          "Recibo marcado como emitido",
+                        )
+                      }
+                    >
+                      Marcar emitido
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+            {receiptPending.length === 0 && (
+              <div className="all-clear">
+                <CheckCircle2 />
+                <strong>Todos os recibos estão conferidos.</strong>
+                <span>Nenhuma pendência fiscal neste demonstrativo.</span>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
       {patientEditing && (
         <div
           className="modal-backdrop"
@@ -4878,6 +5389,15 @@ function Finance({
               </span>
             </div>
             <div className="modal-actions">
+              {editing.paymentStatus !== "Pago" && (
+                <button
+                  type="button"
+                  className="whatsapp"
+                  onClick={() => preparePaymentReminder(editing)}
+                >
+                  <MessageCircle size={17} /> Preparar mensagem
+                </button>
+              )}
               <button
                 type="button"
                 className="secondary"
@@ -4900,13 +5420,19 @@ function Finance({
 function SettingsPage({
   settings,
   save,
+  exportData,
 }: {
   settings: AppSettings;
   save: (s: AppSettings) => void;
+  exportData: () => void;
 }) {
   const [draft, setDraft] = useState({ ...defaultSettings, ...settings });
   const [tab, setTab] = useState<
-    "Perfil" | "Aparência" | "Agenda" | "Atendimento online"
+    | "Perfil"
+    | "Aparência"
+    | "Agenda"
+    | "Atendimento online"
+    | "Dados e segurança"
   >("Perfil");
   const toggle = (field: "workDays", value: string) =>
     setDraft({
@@ -4934,7 +5460,13 @@ function SettingsPage({
       <div className="settings-layout">
         <nav className="settings-nav">
           {(
-            ["Perfil", "Aparência", "Agenda", "Atendimento online"] as const
+            [
+              "Perfil",
+              "Aparência",
+              "Agenda",
+              "Atendimento online",
+              "Dados e segurança",
+            ] as const
           ).map((item) => (
             <button
               key={item}
@@ -4947,9 +5479,6 @@ function SettingsPage({
           <span>PRÓXIMAS ETAPAS</span>
           <button disabled>
             Notificações <small>Em breve</small>
-          </button>
-          <button disabled>
-            Privacidade e segurança <small>Em breve</small>
           </button>
           <button disabled>
             Integrações <small>Em breve</small>
@@ -5164,6 +5693,61 @@ function SettingsPage({
               <div className="setting-note success">
                 <CheckCircle2 />
                 Sala fixa por paciente está alinhada ao fluxo atual da Kamilla.
+              </div>
+            </>
+          )}
+          {tab === "Dados e segurança" && (
+            <>
+              <div className="settings-head">
+                <ShieldCheck />
+                <div>
+                  <h2>Seus dados continuam sendo seus</h2>
+                  <p>Exporte uma cópia administrativa sempre que precisar.</p>
+                </div>
+              </div>
+              <div className="data-security-grid">
+                <article>
+                  <Download />
+                  <div>
+                    <strong>Backup completo</strong>
+                    <p>
+                      Agenda, pacientes, financeiro e configurações em formato
+                      JSON.
+                    </p>
+                    <button
+                      type="button"
+                      className="primary"
+                      onClick={exportData}
+                    >
+                      Baixar meus dados
+                    </button>
+                  </div>
+                </article>
+                <article>
+                  <LockKeyhole />
+                  <div>
+                    <strong>Limite de acesso</strong>
+                    <p>
+                      A administração da plataforma não exibe conteúdo clínico
+                      nem registros documentais.
+                    </p>
+                  </div>
+                </article>
+                <article>
+                  <ShieldCheck />
+                  <div>
+                    <strong>Sem dependência forçada</strong>
+                    <p>
+                      O objetivo é permitir migração e cópias de segurança sem
+                      bloquear o acesso aos dados.
+                    </p>
+                  </div>
+                </article>
+              </div>
+              <div className="setting-note">
+                Este protótipo salva dados no navegador desta máquina. Na versão
+                hospedada, backups, criptografia, auditoria e política de
+                retenção serão implementados no servidor.
               </div>
             </>
           )}

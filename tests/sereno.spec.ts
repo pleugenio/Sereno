@@ -189,3 +189,57 @@ test("navegação principal funciona em tela móvel", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Pacientes" })).toBeVisible();
   await expect(page.locator(".sidebar")).not.toHaveClass(/open/);
 });
+
+test("fecha atendimento e organiza financeiro, recibo e registro documental", async ({
+  page,
+}) => {
+  await login(page);
+  await page
+    .getByRole("button", { name: /Confirmar atendimento de Lucas Ribeiro/ })
+    .click();
+  await page.getByRole("button", { name: /Finalizar atendimento/ }).click();
+  const workflow = page.locator(".closing-workflow-modal");
+  await expect(workflow.getByText("FECHAMENTO EM UM MINUTO")).toBeVisible();
+  await workflow.getByLabel("Situação").selectOption("Pago");
+  await workflow.getByLabel("Forma de pagamento").selectOption("Pix");
+  await workflow.getByLabel("Próxima sessão").fill("2026-08-24T14:00");
+  await workflow.getByText("Registro documental atualizado").click();
+  await workflow.getByText("Recibo emitido no Receita Saúde").click();
+  await workflow.getByRole("button", { name: /Concluir fechamento/ }).click();
+  await expect(
+    page.getByText("Atendimento fechado e próxima sessão agendada"),
+  ).toBeVisible();
+  const savedAppointments = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("sereno-appointments") || "[]"),
+  );
+  expect(
+    savedAppointments.filter(
+      (appointment: { patient: string }) =>
+        appointment.patient === "Lucas Ribeiro",
+    ),
+  ).toHaveLength(2);
+
+  await page.getByRole("button", { name: "Financeiro", exact: true }).click();
+  await expect(page.locator(".financial-health")).toBeVisible();
+  await page.getByRole("button", { name: "Receita Saúde" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Preparação para o Receita Saúde" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Marcar emitido" }).first().click();
+  await expect(page.getByText("Recibo marcado como emitido")).toBeVisible();
+});
+
+test("exporta backup administrativo sem prender os dados", async ({ page }) => {
+  await login(page);
+  await page
+    .getByRole("button", { name: "Configurações", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Dados e segurança" }).click();
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Baixar meus dados" }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^sereno-backup-.*\.json$/);
+  await expect(
+    page.getByText("Backup administrativo preparado para download"),
+  ).toBeVisible();
+});
