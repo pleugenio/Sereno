@@ -70,7 +70,7 @@ test("fluxo profissional: agenda, paciente, busca, financeiro e configurações"
   await page.getByPlaceholder("Nome completo").fill("Ana Teste E2E");
   await page.getByLabel("E-mail").fill("ana@teste.com");
   await page.getByLabel("Telefone").fill("11999998888");
-  await page.getByLabel("Data de nascimento").fill("2000-05-10");
+  await page.getByLabel("Data de nascimento").fill("10/05/2000");
   await page.getByLabel("CPF").fill("12345678901");
   await page.getByLabel("Endereço completo").fill("Rua Teste, 10");
   await page.getByRole("button", { name: /Cadastrar paciente/ }).click();
@@ -143,7 +143,7 @@ test("bloqueio de agenda e cadastro infantojuvenil com exclusão", async ({
   await page
     .getByPlaceholder("Nome completo do responsável")
     .fill("Responsável Teste");
-  await page.getByLabel("Data de nascimento").fill("2015-06-20");
+  await page.getByLabel("Data de nascimento").fill("20/06/2015");
   await page.getByLabel("CPF").fill("98765432100");
   await page.getByLabel("Endereço completo").fill("Rua Infantil, 20");
   await page.getByRole("button", { name: /Cadastrar paciente/ }).click();
@@ -227,6 +227,31 @@ test("fecha atendimento e organiza financeiro, recibo e registro documental", as
   ).toBeVisible();
   await page.getByRole("button", { name: "Marcar emitido" }).first().click();
   await expect(page.getByText("Recibo marcado como emitido")).toBeVisible();
+});
+
+test("prepara sessão com remarcação e cancelamento organizados", async ({
+  page,
+}) => {
+  await login(page);
+  await page.getByRole("button", { name: "Preparar sessão" }).click();
+  await expect(
+    page.locator(".eyebrow", { hasText: "PREPARAR SESSÃO" }),
+  ).toBeVisible();
+  await page.getByText("Outras ações").click();
+  await page.getByRole("button", { name: "Remarcar sessão" }).click();
+  await page.getByLabel("Dia").selectOption("3");
+  await page.getByLabel("Horário").selectOption("11:00");
+  await page.getByRole("button", { name: "Confirmar remarcação" }).click();
+  await expect(
+    page.getByText("Atendimento remarcado e aguardando confirmação"),
+  ).toBeVisible();
+  const cancelSession = page.getByRole("button", { name: "Cancelar sessão" });
+  if (!(await cancelSession.isVisible())) {
+    await page.getByText("Outras ações").click();
+  }
+  page.once("dialog", (dialog) => dialog.accept());
+  await cancelSession.click();
+  await expect(page.getByText("Atendimento cancelado")).toBeVisible();
 });
 
 test("exporta backup administrativo sem prender os dados", async ({ page }) => {

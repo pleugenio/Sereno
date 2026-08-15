@@ -852,6 +852,58 @@ header {
   gap: 8px;
   flex-wrap: wrap;
 }
+.session-more-actions {
+  position: relative;
+  margin-left: auto;
+}
+.session-more-actions summary {
+  min-height: 42px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--muted);
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+.session-more-actions summary::-webkit-details-marker {
+  display: none;
+}
+.session-more-actions[open] summary {
+  border-color: var(--green);
+  color: var(--green);
+}
+.session-more-actions > div {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 7px);
+  z-index: 4;
+  width: 190px;
+  padding: 7px;
+  display: grid;
+  gap: 3px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fff;
+  box-shadow: 0 12px 30px #243a3520;
+}
+.session-more-actions > div button {
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  color: #526b64;
+  text-align: left;
+}
+.session-more-actions > div button:hover {
+  background: var(--soft);
+}
+.session-more-actions > div button.danger-text {
+  color: #a3543f;
+}
 .danger {
   border: 1px solid #efd5cd;
   background: #fff4f1;

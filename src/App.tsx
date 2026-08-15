@@ -297,6 +297,14 @@ function formatCpf(value: string) {
     .replace(/(\d{3})(\d)/, "$1.$2")
     .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
 }
+function formatBrazilianDate(value: string) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split("-");
+    return `${day}/${month}/${year}`;
+  }
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  return digits.replace(/(\d{2})(\d)/, "$1/$2").replace(/(\d{2})(\d)/, "$1/$2");
+}
 
 function Countdown({ appointment }: { appointment: Appointment }) {
   const [now, setNow] = useState(() => Date.now());
@@ -1106,6 +1114,11 @@ export default function App() {
   const [modal, setModal] = useState(false);
   const [patientModal, setPatientModal] = useState(false);
   const [selected, setSelected] = useState<Appointment | null>(null);
+  const [rescheduling, setRescheduling] = useState<Appointment | null>(null);
+  const [rescheduleForm, setRescheduleForm] = useState({
+    day: 1,
+    time: "08:00",
+  });
   const [closingSession, setClosingSession] = useState<Appointment | null>(
     null,
   );
@@ -1328,6 +1341,34 @@ export default function App() {
     const meetUrl = patientMeet(a);
     setSelected({ ...a, meetUrl: meetUrl || undefined });
     setMeetDraft(meetUrl);
+  }
+  function openRescheduling(appointment: Appointment) {
+    setRescheduling(appointment);
+    setRescheduleForm({ day: appointment.day, time: appointment.time });
+  }
+  function rescheduleAppointment(event: React.FormEvent) {
+    event.preventDefault();
+    if (!rescheduling) return;
+    updateAppointment(
+      rescheduling.id,
+      {
+        day: rescheduleForm.day,
+        time: rescheduleForm.time,
+        status: "Aguardando",
+      },
+      "Atendimento remarcado e aguardando confirmação",
+    );
+    setRescheduling(null);
+  }
+  function cancelSelectedAppointment(appointment: Appointment) {
+    if (!window.confirm(`Cancelar o atendimento de ${appointment.patient}?`))
+      return;
+    updateAppointment(
+      appointment.id,
+      { status: "Cancelado", paymentStatus: "Cancelado" },
+      "Atendimento cancelado",
+    );
+    setSelected(null);
   }
   function saveMeet() {
     if (!selected || !/^https:\/\/meet\.google\.com\//.test(meetDraft.trim())) {
@@ -1958,12 +1999,17 @@ export default function App() {
             <label>
               Data de nascimento
               <input
-                type="date"
+                inputMode="numeric"
                 required
-                value={patientForm.birthDate}
+                value={formatBrazilianDate(patientForm.birthDate)}
                 onChange={(e) =>
-                  setPatientForm({ ...patientForm, birthDate: e.target.value })
+                  setPatientForm({
+                    ...patientForm,
+                    birthDate: formatBrazilianDate(e.target.value),
+                  })
                 }
+                placeholder="dd/mm/aaaa"
+                maxLength={10}
               />
             </label>
             <label>
@@ -2039,7 +2085,7 @@ export default function App() {
           >
             <div className="modal-head">
               <div>
-                <span className="eyebrow">DETALHES DO ATENDIMENTO</span>
+                <span className="eyebrow">PREPARAR SESSÃO</span>
                 <h2>{selected.patient}</h2>
                 <p>
                   {weekdays[selected.day - 1]}, às {selected.time} · 50 minutos
@@ -2149,8 +2195,97 @@ export default function App() {
                   Confirmar presença
                 </button>
               )}
+              <details className="session-more-actions">
+                <summary>Outras ações</summary>
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => openRescheduling(selected)}
+                  >
+                    <CalendarClock size={16} /> Remarcar sessão
+                  </button>
+                  <button
+                    type="button"
+                    className="danger-text"
+                    onClick={() => cancelSelectedAppointment(selected)}
+                  >
+                    <X size={16} /> Cancelar sessão
+                  </button>
+                </div>
+              </details>
             </div>
           </section>
+        </div>
+      )}
+      {rescheduling && (
+        <div
+          className="modal-backdrop"
+          onMouseDown={() => setRescheduling(null)}
+        >
+          <form
+            className="modal small-modal"
+            onSubmit={rescheduleAppointment}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="modal-head">
+              <div>
+                <span className="eyebrow">REMARCAR SESSÃO</span>
+                <h2>{rescheduling.patient}</h2>
+                <p>O atendimento voltará a aguardar confirmação.</p>
+              </div>
+              <button type="button" onClick={() => setRescheduling(null)}>
+                <X />
+              </button>
+            </div>
+            <div className="form-row">
+              <label>
+                Dia
+                <select
+                  value={rescheduleForm.day}
+                  onChange={(event) =>
+                    setRescheduleForm({
+                      ...rescheduleForm,
+                      day: Number(event.target.value),
+                    })
+                  }
+                >
+                  {weekdays.map((day, index) => (
+                    <option key={day} value={index + 1}>
+                      {day}, {dates[index]} ago.
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Horário
+                <select
+                  value={rescheduleForm.time}
+                  onChange={(event) =>
+                    setRescheduleForm({
+                      ...rescheduleForm,
+                      time: event.target.value,
+                    })
+                  }
+                >
+                  {times.map((time) => (
+                    <option key={time}>{time}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setRescheduling(null)}
+              >
+                Voltar
+              </button>
+              <button className="primary">
+                <CalendarClock size={17} /> Confirmar remarcação
+              </button>
+            </div>
+          </form>
         </div>
       )}
       {closingSession && (
@@ -4002,7 +4137,7 @@ function Overview({
                 ) : (
                   <button className="primary" onClick={() => select(next)}>
                     <Plus size={17} />
-                    Preparar sala
+                    Preparar sessão
                   </button>
                 )}
                 <button className="secondary" onClick={() => select(next)}>
@@ -4108,11 +4243,15 @@ function Patients({
       setEditing(null);
     }
   }
-  const patientAge = editing?.birthDate
-    ? Math.max(
-        0,
-        new Date().getFullYear() - Number(editing.birthDate.slice(0, 4)),
+  const birthYear = editing?.birthDate
+    ? Number(
+        editing.birthDate.includes("-")
+          ? editing.birthDate.slice(0, 4)
+          : editing.birthDate.slice(6, 10),
       )
+    : null;
+  const patientAge = birthYear
+    ? Math.max(0, new Date().getFullYear() - birthYear)
     : null;
   return (
     <>
@@ -4172,7 +4311,7 @@ function Patients({
               <div>
                 <span className="eyebrow">CADASTRO ADMINISTRATIVO</span>
                 <h2>{editing.name}</h2>
-                <p>Dados de contato e acordo financeiro.</p>
+                <p>Identificação, contato e organização administrativa.</p>
               </div>
               <button type="button" onClick={() => setEditing(null)}>
                 <X />
@@ -4266,11 +4405,16 @@ function Patients({
                     <label>
                       Data de nascimento
                       <input
-                        type="date"
-                        value={editing.birthDate || ""}
+                        inputMode="numeric"
+                        value={formatBrazilianDate(editing.birthDate || "")}
                         onChange={(e) =>
-                          setEditing({ ...editing, birthDate: e.target.value })
+                          setEditing({
+                            ...editing,
+                            birthDate: formatBrazilianDate(e.target.value),
+                          })
                         }
+                        placeholder="dd/mm/aaaa"
+                        maxLength={10}
                       />
                     </label>
                   </div>
@@ -4287,36 +4431,6 @@ function Patients({
                           })
                         }
                         placeholder="000.000.000-00"
-                      />
-                    </label>
-                    <label>
-                      Endereço completo
-                      <input
-                        value={editing.address || ""}
-                        onChange={(e) =>
-                          setEditing({ ...editing, address: e.target.value })
-                        }
-                        placeholder="Rua, número, complemento, cidade e estado"
-                      />
-                    </label>
-                  </div>
-                  <div className="form-row">
-                    <label>
-                      E-mail
-                      <input
-                        value={editing.email}
-                        onChange={(e) =>
-                          setEditing({ ...editing, email: e.target.value })
-                        }
-                      />
-                    </label>
-                    <label>
-                      Telefone
-                      <input
-                        value={editing.phone}
-                        onChange={(e) =>
-                          setEditing({ ...editing, phone: e.target.value })
-                        }
                       />
                     </label>
                   </div>
@@ -4738,19 +4852,6 @@ function Patients({
                 }}
               >
                 Excluir paciente
-              </button>
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => {
-                  saveProfile({
-                    ...editing,
-                    status: editing.status === "Pausado" ? "Ativo" : "Pausado",
-                  });
-                  setEditing(null);
-                }}
-              >
-                {editing.status === "Pausado" ? "Reativar" : "Arquivar"}
               </button>
               <button
                 type="button"
