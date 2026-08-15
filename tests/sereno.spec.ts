@@ -242,6 +242,15 @@ test("prepara sessão com remarcação e cancelamento organizados", async ({
   await expect(
     page.locator(".eyebrow", { hasText: "PREPARAR SESSÃO" }),
   ).toBeVisible();
+  await page
+    .getByPlaceholder("Cole o link meet.google.com aqui")
+    .fill("https://meet.google.com/abc-defg-hij");
+  await page.getByRole("button", { name: "Salvar", exact: true }).click();
+  await expect(page.getByText("Link salvo")).toBeVisible();
+  await expect(
+    page.locator(".meet-box").getByRole("link", { name: "Entrar na sala" }),
+  ).toHaveAttribute("href", "https://meet.google.com/abc-defg-hij");
+  await expect(page.getByRole("button", { name: "Enviar link" })).toBeVisible();
   await page.getByText("Outras ações").click();
   await page.getByRole("button", { name: "Remarcar sessão" }).click();
   await page.getByLabel("Data").fill("2026-08-19");

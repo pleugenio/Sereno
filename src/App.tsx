@@ -1115,6 +1115,7 @@ export default function App() {
   const [modal, setModal] = useState(false);
   const [patientModal, setPatientModal] = useState(false);
   const [selected, setSelected] = useState<Appointment | null>(null);
+  const [sessionActionsOpen, setSessionActionsOpen] = useState(false);
   const [rescheduling, setRescheduling] = useState<Appointment | null>(null);
   const [rescheduleForm, setRescheduleForm] = useState({
     date: "2026-08-17",
@@ -1346,8 +1347,10 @@ export default function App() {
     const meetUrl = patientMeet(a);
     setSelected({ ...a, meetUrl: meetUrl || undefined });
     setMeetDraft(meetUrl);
+    setSessionActionsOpen(false);
   }
   function openRescheduling(appointment: Appointment) {
+    setSessionActionsOpen(false);
     setRescheduling(appointment);
     setRescheduleForm({
       date:
@@ -2222,45 +2225,61 @@ export default function App() {
               </div>
             )}
             <div className="detail-actions">
-              <button
-                className="primary finish-session-button"
-                onClick={() => openClosingWorkflow(selected)}
-              >
-                <CheckCircle2 size={17} />
-                Finalizar atendimento
-              </button>
-              {selected.status === "Aguardando" && (
-                <button
-                  className="secondary"
-                  onClick={() =>
-                    updateAppointment(
-                      selected.id,
-                      { status: "Confirmado" },
-                      "Presença confirmada",
-                    )
-                  }
-                >
-                  Confirmar presença
-                </button>
-              )}
-              <details className="session-more-actions">
-                <summary>Outras ações</summary>
-                <div>
+              {!sessionActionsOpen ? (
+                <>
+                  <button
+                    className="primary finish-session-button"
+                    onClick={() => openClosingWorkflow(selected)}
+                  >
+                    <CheckCircle2 size={17} />
+                    Finalizar atendimento
+                  </button>
+                  {selected.status === "Aguardando" && (
+                    <button
+                      className="secondary"
+                      onClick={() =>
+                        updateAppointment(
+                          selected.id,
+                          { status: "Confirmado" },
+                          "Presença confirmada",
+                        )
+                      }
+                    >
+                      Confirmar presença
+                    </button>
+                  )}
+                  <button
+                    className="secondary more-actions-button"
+                    onClick={() => setSessionActionsOpen(true)}
+                  >
+                    Outras ações
+                  </button>
+                </>
+              ) : (
+                <div className="session-secondary-actions">
                   <button
                     type="button"
+                    className="secondary"
+                    onClick={() => setSessionActionsOpen(false)}
+                  >
+                    <ChevronLeft size={16} /> Voltar
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary"
                     onClick={() => openRescheduling(selected)}
                   >
                     <CalendarClock size={16} /> Remarcar sessão
                   </button>
                   <button
                     type="button"
-                    className="danger-text"
+                    className="danger"
                     onClick={() => cancelSelectedAppointment(selected)}
                   >
                     <X size={16} /> Cancelar sessão
                   </button>
                 </div>
-              </details>
+              )}
             </div>
           </section>
         </div>
