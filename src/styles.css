@@ -802,6 +802,40 @@ header {
   color: var(--muted);
   margin-top: 2px;
 }
+.patient-picker {
+  max-height: 245px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 6px;
+  background: var(--surface, #fff);
+  box-shadow: 0 10px 25px #263b3718;
+}
+.patient-picker button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  border-radius: 9px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+  text-align: left;
+}
+.patient-picker button:hover,
+.patient-picker button[aria-selected="true"] {
+  background: #f0f5f2;
+}
+.patient-picker span,
+.patient-picker small {
+  display: block;
+}
+.patient-picker small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11px;
+}
 .appointment.cancelado {
   background: #f7e8e4;
   border-color: #ba735e;

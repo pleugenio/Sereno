@@ -254,6 +254,24 @@ test("prepara sessão com remarcação e cancelamento organizados", async ({
   await expect(page.getByText("Atendimento cancelado")).toBeVisible();
 });
 
+test("oferece pacientes para escolha antes de digitar na busca", async ({
+  page,
+}) => {
+  await login(page);
+  const globalSearch = page.getByPlaceholder("Buscar pacientes...");
+  await globalSearch.focus();
+  const initialOptions = page.locator(".search-results button");
+  await expect(initialOptions.first()).toBeVisible();
+  expect(await initialOptions.count()).toBeLessThanOrEqual(10);
+
+  await page.getByRole("button", { name: "Novo atendimento" }).first().click();
+  const picker = page.locator(".patient-picker");
+  await expect(picker.getByRole("option").first()).toBeVisible();
+  expect(await picker.getByRole("option").count()).toBeLessThanOrEqual(10);
+  await picker.getByRole("option").first().click();
+  await expect(page.getByPlaceholder("Nome do paciente")).not.toHaveValue("");
+});
+
 test("exporta backup administrativo sem prender os dados", async ({ page }) => {
   await login(page);
   await page

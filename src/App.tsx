@@ -1133,6 +1133,7 @@ export default function App() {
   });
   const [meetDraft, setMeetDraft] = useState("");
   const [search, setSearch] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   const [patientToOpen, setPatientToOpen] = useState<string | null>(null);
   const [patientOpenNonce, setPatientOpenNonce] = useState(0);
   const [toast, setToast] = useState("");
@@ -1183,25 +1184,28 @@ export default function App() {
       ),
     [appointments, extraPatients],
   );
-  const normalizedSearch = search.trim().toLowerCase();
-  const numericSearch = normalizedSearch.replace(/\D/g, "");
-  const results = normalizedSearch
-    ? patients
-        .filter((name) => {
-          const profile = profiles.find((item) => item.name === name);
-          const textFields = [name, profile?.email, profile?.address]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase();
-          const numericFields =
-            `${profile?.phone || ""} ${profile?.cpf || ""}`.replace(/\D/g, "");
-          return (
-            textFields.includes(normalizedSearch) ||
-            (numericSearch.length > 0 && numericFields.includes(numericSearch))
-          );
-        })
-        .slice(0, 5)
-    : [];
+  function filterPatients(query: string) {
+    const normalizedQuery = query.trim().toLowerCase();
+    const numericQuery = normalizedQuery.replace(/\D/g, "");
+    return patients
+      .filter((name) => {
+        const profile = profiles.find((item) => item.name === name);
+        const textFields = [name, profile?.email, profile?.address]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        const numericFields =
+          `${profile?.phone || ""} ${profile?.cpf || ""}`.replace(/\D/g, "");
+        return (
+          !normalizedQuery ||
+          textFields.includes(normalizedQuery) ||
+          (numericQuery.length > 0 && numericFields.includes(numericQuery))
+        );
+      })
+      .slice(0, 10);
+  }
+  const results = filterPatients(search);
+  const appointmentPatientResults = filterPatients(form.patient);
   const confirmed = appointments.filter(
     (a) => a.status === "Confirmado",
   ).length;
@@ -1699,9 +1703,13 @@ export default function App() {
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                onFocus={() => setSearchOpen(true)}
+                onBlur={() =>
+                  window.setTimeout(() => setSearchOpen(false), 120)
+                }
                 placeholder="Buscar pacientes..."
               />
-              {results.length > 0 && (
+              {searchOpen && results.length > 0 && (
                 <div className="search-results">
                   {results.map((name) => (
                     <button
@@ -1839,6 +1847,32 @@ export default function App() {
                 placeholder="Nome do paciente"
                 autoFocus
               />
+              {appointmentPatientResults.length > 0 && (
+                <div className="patient-picker" role="listbox">
+                  {appointmentPatientResults.map((name) => {
+                    const profile = profiles.find((item) => item.name === name);
+                    return (
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={form.patient === name}
+                        key={name}
+                        onClick={() => setForm({ ...form, patient: name })}
+                      >
+                        <div className="avatar soft">{initials(name)}</div>
+                        <span>
+                          <strong>{name}</strong>
+                          <small>
+                            {profile?.phone ||
+                              profile?.email ||
+                              "Selecionar paciente"}
+                          </small>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </label>
             <div className="form-row">
               <label>
@@ -4125,24 +4159,26 @@ function Overview({
               </div>
               <div className="next-actions">
                 {next.meetUrl ? (
-                  <a
-                    className="primary"
-                    href={next.meetUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <Video size={17} />
-                    Entrar na sala
-                  </a>
+                  <>
+                    <a
+                      className="primary"
+                      href={next.meetUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <Video size={17} />
+                      Entrar na sala
+                    </a>
+                    <button className="secondary" onClick={() => select(next)}>
+                      Detalhes
+                    </button>
+                  </>
                 ) : (
                   <button className="primary" onClick={() => select(next)}>
                     <Plus size={17} />
                     Preparar sessão
                   </button>
                 )}
-                <button className="secondary" onClick={() => select(next)}>
-                  Detalhes
-                </button>
               </div>
             </>
           ) : (
