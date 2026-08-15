@@ -4780,7 +4780,7 @@ function Patients({
                     </div>
                     <UsersRound />
                   </div>
-                  <div className="form-row">
+                  <div className="form-row personal-data-grid">
                     <label>
                       Tipo de paciente
                       <select
@@ -4812,8 +4812,6 @@ function Patients({
                         maxLength={10}
                       />
                     </label>
-                  </div>
-                  <div className="form-row">
                     <label>
                       CPF
                       <input
