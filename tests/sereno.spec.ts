@@ -84,8 +84,11 @@ test("fluxo profissional: agenda, paciente, busca, financeiro e configurações"
   await page.getByRole("button", { name: /Salvar alterações/ }).click();
 
   await page.getByPlaceholder("Buscar pacientes...").fill("ana@teste.com");
-  await expect(page.getByText("Abrir cadastro administrativo")).toBeVisible();
-  await page.getByText("Abrir cadastro administrativo").click();
+  const patientResult = page
+    .locator(".search-results button")
+    .filter({ hasText: "Ana Teste E2E" });
+  await expect(patientResult).toBeVisible();
+  await patientResult.click();
   await expect(
     page.getByRole("heading", { name: "Ana Teste E2E" }),
   ).toBeVisible();
@@ -233,7 +236,9 @@ test("prepara sessão com remarcação e cancelamento organizados", async ({
   page,
 }) => {
   await login(page);
-  await page.getByRole("button", { name: "Preparar sessão" }).click();
+  await page
+    .getByRole("button", { name: /Preparar próximo atendimento/ })
+    .click();
   await expect(
     page.locator(".eyebrow", { hasText: "PREPARAR SESSÃO" }),
   ).toBeVisible();
@@ -270,6 +275,21 @@ test("oferece pacientes para escolha antes de digitar na busca", async ({
   expect(await picker.getByRole("option").count()).toBeLessThanOrEqual(10);
   await picker.getByRole("option").first().click();
   await expect(page.getByPlaceholder("Nome do paciente")).not.toHaveValue("");
+});
+
+test("mostra hoje e amanhã como terceira opção de preparação", async ({
+  page,
+}) => {
+  await login(page);
+  await page.getByRole("button", { name: "Hoje e amanhã" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Hoje e amanhã" }),
+  ).toBeVisible();
+  await expect(page.locator(".planning-day")).toHaveCount(2);
+  await page.locator(".planning-list > button").first().click();
+  await expect(
+    page.locator(".eyebrow", { hasText: "PREPARAR SESSÃO" }),
+  ).toBeVisible();
 });
 
 test("exporta backup administrativo sem prender os dados", async ({ page }) => {

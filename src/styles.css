@@ -798,6 +798,10 @@ header {
 .search-results small {
   display: block;
 }
+.search-results strong {
+  font-size: 12px;
+  line-height: 1.25;
+}
 .search-results small {
   color: var(--muted);
   margin-top: 2px;
@@ -1186,8 +1190,20 @@ header {
   color: var(--muted);
 }
 .next-time {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
   text-align: center;
   padding: 24px 0 18px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.next-time:hover,
+.next-time:focus-visible {
+  background: #f3f6f4;
+  outline: none;
 }
 .next-time span,
 .next-time small {
@@ -1200,6 +1216,96 @@ header {
   display: block;
   color: #294b44;
   margin: 3px;
+}
+.planning-title .secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.daily-planning-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.planning-day {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface, #fff);
+}
+.planning-list {
+  margin-top: 7px;
+}
+.planning-list > button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto 18px;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+.planning-list > button:last-child {
+  border-bottom: 0;
+}
+.planning-list > button:hover {
+  background: #fafcfb;
+}
+.planning-list time {
+  color: #315c52;
+  font: 700 16px Manrope;
+}
+.planning-list span strong,
+.planning-list span small {
+  display: block;
+}
+.planning-list span small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.planning-list b {
+  padding: 5px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.planning-list b.ready {
+  background: #e4f1eb;
+  color: #477866;
+}
+.planning-list b.pending {
+  background: #f5eddc;
+  color: #8d6e39;
+}
+.planning-empty {
+  min-height: 190px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: #5f7d73;
+}
+.planning-empty span {
+  color: var(--muted);
+  font-size: 11px;
+}
+@media (max-width: 780px) {
+  .daily-planning-grid {
+    grid-template-columns: 1fr;
+  }
+  .planning-list > button {
+    grid-template-columns: 52px minmax(0, 1fr) 18px;
+  }
+  .planning-list b {
+    display: none;
+  }
 }
 .next-person {
   display: flex;

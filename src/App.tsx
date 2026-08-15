@@ -45,6 +45,7 @@ import {
 type View =
   | "inicio"
   | "agenda"
+  | "planejamento"
   | "pacientes"
   | "financeiro"
   | "configuracoes"
@@ -263,6 +264,7 @@ const initialProfiles: PatientProfile[] = [
 const nav = [
   { id: "inicio" as View, label: "Visão geral", icon: LayoutDashboard },
   { id: "agenda" as View, label: "Agenda", icon: CalendarDays },
+  { id: "planejamento" as View, label: "Hoje e amanhã", icon: CalendarClock },
   { id: "pacientes" as View, label: "Pacientes", icon: UsersRound },
   { id: "financeiro" as View, label: "Financeiro", icon: WalletCards },
 ];
@@ -1725,7 +1727,6 @@ export default function App() {
                       <div className="avatar soft">{initials(name)}</div>
                       <span>
                         <strong>{name}</strong>
-                        <small>Abrir cadastro administrativo</small>
                       </span>
                     </button>
                   ))}
@@ -1787,6 +1788,14 @@ export default function App() {
               appointments={appointments}
               profiles={profiles}
               setModal={setModal}
+              select={openAppointment}
+              go={setView}
+            />
+          )}
+          {view === "planejamento" && (
+            <DailyPlanning
+              appointments={appointments}
+              profiles={profiles}
               select={openAppointment}
               go={setView}
             />
@@ -4136,7 +4145,12 @@ function Overview({
           </div>
           {next ? (
             <>
-              <div className="next-time">
+              <button
+                type="button"
+                className="next-time"
+                onClick={() => select(next)}
+                aria-label={`Preparar próximo atendimento de ${next.patient}`}
+              >
                 <span>Próximo atendimento</span>
                 <strong>{next.time}</strong>
                 <small>
@@ -4145,7 +4159,7 @@ function Overview({
                   {next.time.endsWith(":00") ? "50" : "40"}
                 </small>
                 <Countdown appointment={next} />
-              </div>
+              </button>
               <div className="next-person">
                 <div className="avatar soft">{initials(next.patient)}</div>
                 <span>
@@ -4223,6 +4237,96 @@ function Overview({
             <small>não significa atraso</small>
           </p>
         </div>
+      </section>
+    </>
+  );
+}
+
+function DailyPlanning({
+  appointments,
+  profiles,
+  select,
+  go,
+}: {
+  appointments: Appointment[];
+  profiles: PatientProfile[];
+  select: (appointment: Appointment) => void;
+  go: (view: View) => void;
+}) {
+  const days = [4, 5].map((day) => ({
+    day,
+    label: day === 4 ? "Hoje" : "Amanhã",
+    appointments: appointments
+      .filter(
+        (appointment) =>
+          appointment.day === day && appointment.status !== "Cancelado",
+      )
+      .sort((a, b) => a.time.localeCompare(b.time)),
+  }));
+
+  return (
+    <>
+      <section className="page-title serene-title planning-title">
+        <div>
+          <span className="eyebrow">PREPARAÇÃO DA ROTINA</span>
+          <h1>Hoje e amanhã</h1>
+          <p>Antecipe salas, confirmações e detalhes das próximas sessões.</p>
+        </div>
+        <button className="secondary" onClick={() => go("agenda")}>
+          <CalendarDays size={18} /> Ver agenda completa
+        </button>
+      </section>
+      <section className="daily-planning-grid">
+        {days.map((group) => (
+          <article className="planning-day" key={group.day}>
+            <div className="section-label">
+              <span>
+                <CalendarClock size={16} /> {group.label}
+              </span>
+              <small>
+                {weekdays[group.day - 1]}, {dates[group.day - 1]} de agosto
+              </small>
+            </div>
+            {group.appointments.length > 0 ? (
+              <div className="planning-list">
+                {group.appointments.map((appointment) => {
+                  const meetUrl =
+                    profiles.find(
+                      (profile) => profile.name === appointment.patient,
+                    )?.meetUrl || appointment.meetUrl;
+                  return (
+                    <button
+                      key={appointment.id}
+                      onClick={() => select(appointment)}
+                    >
+                      <time>{appointment.time}</time>
+                      <span>
+                        <strong>{appointment.patient}</strong>
+                        <small>
+                          {appointment.mode} · {appointment.status}
+                        </small>
+                      </span>
+                      <b className={meetUrl ? "ready" : "pending"}>
+                        {appointment.mode === "Presencial"
+                          ? "Ver detalhes"
+                          : meetUrl
+                            ? "Sala pronta"
+                            : "Preparar sessão"}
+                      </b>
+                      <ChevronRight size={17} />
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="planning-empty">
+                <CheckCircle2 />
+                <strong>Nenhuma sessão agendada</strong>
+                <span>Este período está livre.</span>
+              </div>
+            )}
+          </article>
+        ))}
       </section>
     </>
   );
