@@ -3564,15 +3564,21 @@ function Overview({
   select: (a: Appointment) => void;
   go: (v: View) => void;
 }) {
-  const nextBase = appointments.find((a) => a.status === "Confirmado");
-  const next = nextBase
-    ? {
-        ...nextBase,
-        meetUrl:
-          profiles.find((p) => p.name === nextBase.patient)?.meetUrl ||
-          nextBase.meetUrl,
-      }
-    : undefined;
+  const todayAppointments = appointments
+    .filter(
+      (appointment) =>
+        appointment.day === 4 && appointment.status !== "Cancelado",
+    )
+    .sort((a, b) => a.time.localeCompare(b.time))
+    .map((appointment) => ({
+      ...appointment,
+      meetUrl:
+        profiles.find((profile) => profile.name === appointment.patient)
+          ?.meetUrl || appointment.meetUrl,
+    }));
+  const next = todayAppointments.find(
+    (appointment) => appointment.status !== "Realizado",
+  );
   const awaiting = appointments.filter((a) => a.status === "Aguardando");
   const overdue = appointments.filter(
     (a) =>
@@ -3661,52 +3667,61 @@ function Overview({
               <Clock3 size={16} />
               Seu dia
             </span>
-            <small>{appointments.length} na semana</small>
+            <small>{todayAppointments.length} atendimentos hoje</small>
           </div>
-          {next ? (
+          {todayAppointments.length > 0 ? (
             <>
-              <div className="next-time">
-                <span>Próximo atendimento</span>
-                <strong>{next.time}</strong>
-                <small>
-                  até{" "}
-                  {String(Number(next.time.slice(0, 2)) + 1).padStart(2, "0")}:
-                  {next.time.endsWith(":00") ? "50" : "40"}
-                </small>
-                <Countdown appointment={next} />
-              </div>
-              <div className="next-person">
-                <div className="avatar soft">{initials(next.patient)}</div>
-                <span>
-                  <strong>{next.patient}</strong>
-                  <small>
-                    <Video size={13} />
-                    {next.mode} ·{" "}
-                    {next.meetUrl ? "Sala pronta" : "Sala ainda não criada"}
-                  </small>
-                </span>
-              </div>
-              <div className="next-actions">
-                {next.meetUrl ? (
-                  <a
-                    className="primary"
-                    href={next.meetUrl}
-                    target="_blank"
-                    rel="noreferrer"
+              {next && (
+                <div className="day-next-summary">
+                  <span>
+                    <strong>Próximo às {next.time}</strong>
+                    <small>Prepare-se com tranquilidade</small>
+                  </span>
+                  <Countdown appointment={next} />
+                </div>
+              )}
+              <div className="today-schedule">
+                {todayAppointments.map((appointment) => (
+                  <article
+                    key={appointment.id}
+                    className={appointment.id === next?.id ? "is-next" : ""}
                   >
-                    <Video size={17} />
-                    Entrar na sala
-                  </a>
-                ) : (
-                  <button className="primary" onClick={() => select(next)}>
-                    <Plus size={17} />
-                    Preparar sala
-                  </button>
-                )}
-                <button className="secondary" onClick={() => select(next)}>
-                  Detalhes
-                </button>
+                    <time>{appointment.time}</time>
+                    <div className="today-person">
+                      <span className="avatar soft">
+                        {initials(appointment.patient)}
+                      </span>
+                      <div>
+                        <strong>{appointment.patient}</strong>
+                        <small>
+                          {appointment.mode} · 50 min · {appointment.status}
+                        </small>
+                      </div>
+                    </div>
+                    <div className="today-room">
+                      {appointment.mode === "Online" && (
+                        <small
+                          className={appointment.meetUrl ? "ready" : "pending"}
+                        >
+                          <Video size={12} />{" "}
+                          {appointment.meetUrl
+                            ? "Sala pronta"
+                            : "Preparar sala"}
+                        </small>
+                      )}
+                      <button onClick={() => select(appointment)}>
+                        Detalhes
+                      </button>
+                    </div>
+                  </article>
+                ))}
               </div>
+              <button
+                className="quiet-link day-agenda-link"
+                onClick={() => go("agenda")}
+              >
+                Ver agenda do dia <ArrowRight size={15} />
+              </button>
             </>
           ) : (
             <div className="all-clear">

@@ -56,6 +56,13 @@ test("fluxo profissional: agenda, paciente, busca, financeiro e configurações"
 }) => {
   await login(page);
   await expect(page.getByText("Kamilla Campos Eugenio")).toBeVisible();
+  const dayCard = page.locator(".day-card");
+  await expect(dayCard.getByText("2 atendimentos hoje")).toBeVisible();
+  await expect(dayCard.getByText("Ana Martins")).toBeVisible();
+  await expect(dayCard.getByText("João Oliveira")).toBeVisible();
+  await dayCard.getByRole("button", { name: "Detalhes" }).first().click();
+  await expect(page.getByText("DETALHES DO ATENDIMENTO")).toBeVisible();
+  await page.locator(".detail-modal .modal-head button").click();
 
   await page.getByRole("button", { name: "Agenda", exact: true }).click();
   await page.getByRole("button", { name: /Novo atendimento/ }).click();

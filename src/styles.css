@@ -1139,6 +1139,116 @@ header {
 .next-actions button {
   flex: 1;
 }
+.day-next-summary {
+  margin: 14px 0 8px;
+  padding: 11px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-radius: 11px;
+  background: #eef5f1;
+}
+.day-next-summary > span {
+  display: grid;
+  gap: 2px;
+}
+.day-next-summary strong {
+  color: #31564a;
+  font-size: 12px;
+}
+.day-next-summary small {
+  color: var(--muted);
+  font-size: 10px;
+}
+.day-next-summary .countdown {
+  margin: 0;
+  white-space: nowrap;
+}
+.today-schedule {
+  display: grid;
+}
+.today-schedule article {
+  min-height: 72px;
+  padding: 11px 2px;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  border-bottom: 1px solid var(--line);
+}
+.today-schedule article.is-next {
+  position: relative;
+}
+.today-schedule article.is-next:before {
+  content: "";
+  position: absolute;
+  left: -20px;
+  width: 3px;
+  height: 38px;
+  border-radius: 0 4px 4px 0;
+  background: var(--green);
+}
+.today-schedule time {
+  color: #31564a;
+  font-weight: 800;
+  font-size: 12px;
+}
+.today-person {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.today-person .avatar {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  font-size: 10px;
+}
+.today-person > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.today-person strong {
+  overflow: hidden;
+  color: #344843;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.today-person small {
+  color: var(--muted);
+  font-size: 9px;
+  white-space: nowrap;
+}
+.today-room {
+  display: grid;
+  justify-items: end;
+  gap: 5px;
+}
+.today-room small {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9px;
+  font-weight: 700;
+}
+.today-room small.ready {
+  color: #3d7a62;
+}
+.today-room small.pending {
+  color: #9a7539;
+}
+.today-room button {
+  color: var(--green);
+  font-size: 10px;
+  font-weight: 700;
+}
+.day-agenda-link {
+  margin-top: 9px;
+}
 .calm-summary {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
