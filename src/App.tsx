@@ -378,6 +378,24 @@ function formatCalendarDate(value: string, weekday = false) {
     year: "numeric",
   }).format(fromIsoDate(value));
 }
+function normalizeSearchText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+function emptyPatientProfile(name: string): PatientProfile {
+  return {
+    name,
+    email: "",
+    phone: "",
+    value: 180,
+    agreement: "Por sessão",
+    dueDay: 10,
+    status: "Ativo",
+    notes: "",
+  };
+}
 
 function Countdown({ appointment }: { appointment: Appointment }) {
   const [now, setNow] = useState(() => Date.now());
@@ -1256,20 +1274,23 @@ export default function App() {
   const patients = useMemo(
     () =>
       Array.from(
-        new Set([...appointments.map((a) => a.patient), ...extraPatients]),
+        new Set([
+          ...profiles.map((profile) => profile.name),
+          ...appointments.map((a) => a.patient),
+          ...extraPatients,
+        ]),
       ),
-    [appointments, extraPatients],
+    [appointments, extraPatients, profiles],
   );
   function filterPatients(query: string) {
-    const normalizedQuery = query.trim().toLowerCase();
+    const normalizedQuery = normalizeSearchText(query.trim());
     const numericQuery = normalizedQuery.replace(/\D/g, "");
     return patients
       .filter((name) => {
         const profile = profiles.find((item) => item.name === name);
-        const textFields = [name, profile?.email, profile?.address]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
+        const textFields = normalizeSearchText(
+          [name, profile?.email, profile?.address].filter(Boolean).join(" "),
+        );
         const numericFields =
           `${profile?.phone || ""} ${profile?.cpf || ""}`.replace(/\D/g, "");
         return (
@@ -1291,6 +1312,14 @@ export default function App() {
   function notify(message: string) {
     setToast(message);
     window.setTimeout(() => setToast(""), 2600);
+  }
+  function openPatientFromSearch(name: string) {
+    setPatientToOpen(name);
+    setPatientOpenNonce((value) => value + 1);
+    setView("pacientes");
+    setSearch("");
+    setSearchOpen(false);
+    notify(`${name} encontrado`);
   }
   function createAppointment(e: React.FormEvent) {
     e.preventDefault();
@@ -1845,36 +1874,51 @@ export default function App() {
             <Menu />
           </button>
           {userRole === "professional" ? (
-            <div className="search">
+            <div
+              className="search"
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                  setSearchOpen(false);
+                }
+              }}
+            >
               <Search size={18} />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onFocus={() => setSearchOpen(true)}
-                onBlur={() =>
-                  window.setTimeout(() => setSearchOpen(false), 120)
-                }
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    setSearchOpen(false);
+                    event.currentTarget.blur();
+                  }
+                  if (event.key === "Enter" && results[0]) {
+                    event.preventDefault();
+                    openPatientFromSearch(results[0]);
+                  }
+                }}
                 placeholder="Buscar pacientes..."
               />
-              {searchOpen && results.length > 0 && (
+              {searchOpen && (
                 <div className="search-results">
-                  {results.map((name) => (
-                    <button
-                      key={name}
-                      onClick={() => {
-                        setPatientToOpen(name);
-                        setPatientOpenNonce((value) => value + 1);
-                        setView("pacientes");
-                        setSearch("");
-                        notify(`${name} encontrado`);
-                      }}
-                    >
-                      <div className="avatar soft">{initials(name)}</div>
-                      <span>
-                        <strong>{name}</strong>
-                      </span>
-                    </button>
-                  ))}
+                  {results.length > 0 ? (
+                    results.map((name) => (
+                      <button
+                        type="button"
+                        key={name}
+                        onClick={() => openPatientFromSearch(name)}
+                      >
+                        <div className="avatar soft">{initials(name)}</div>
+                        <span>
+                          <strong>{name}</strong>
+                        </span>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="search-empty">
+                      Nenhum paciente encontrado
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -4569,7 +4613,8 @@ function Patients({
 }) {
   const [editing, setEditing] = useState<PatientProfile | null>(() =>
     openPatientName
-      ? (profiles.find((p) => p.name === openPatientName) ?? null)
+      ? (profiles.find((p) => p.name === openPatientName) ??
+        emptyPatientProfile(openPatientName))
       : null,
   );
   const [patientTab, setPatientTab] = useState<
@@ -4583,16 +4628,7 @@ function Patients({
   function open(name: string) {
     setPatientTab("Dados pessoais");
     setEditing(
-      profiles.find((p) => p.name === name) ?? {
-        name,
-        email: "",
-        phone: "",
-        value: 180,
-        agreement: "Por sessão",
-        dueDay: 10,
-        status: "Ativo",
-        notes: "",
-      },
+      profiles.find((p) => p.name === name) ?? emptyPatientProfile(name),
     );
   }
   function submit(e: React.FormEvent) {

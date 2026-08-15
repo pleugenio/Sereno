@@ -300,6 +300,34 @@ test("oferece pacientes para escolha antes de digitar na busca", async ({
   await expect(page.getByPlaceholder("Nome do paciente")).not.toHaveValue("");
 });
 
+test("busca paciente sem acento e abre cadastro criado pela agenda", async ({
+  page,
+}) => {
+  await login(page);
+  const search = page.getByPlaceholder("Buscar pacientes...");
+  await search.fill("joao");
+  await expect(
+    page.locator(".search-results button").filter({ hasText: "João Oliveira" }),
+  ).toBeVisible();
+  await search.press("Enter");
+  await expect(
+    page.getByRole("heading", { name: "João Oliveira" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Cancelar", exact: true }).click();
+
+  await page.getByRole("button", { name: "Agenda", exact: true }).click();
+  await page.getByRole("button", { name: /Novo atendimento/ }).click();
+  await page.getByLabel("Paciente").fill("Paciente Apenas Agenda E2E");
+  await page.getByLabel("Data").fill("2026-09-02");
+  await page.getByLabel("Horário").selectOption("17:00");
+  await page.getByRole("button", { name: /Agendar atendimento/ }).click();
+  await search.fill("apenas agenda");
+  await search.press("Enter");
+  await expect(
+    page.getByRole("heading", { name: "Paciente Apenas Agenda E2E" }),
+  ).toBeVisible();
+});
+
 test("mostra hoje e amanhã como terceira opção de preparação", async ({
   page,
 }) => {

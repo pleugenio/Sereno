@@ -798,6 +798,12 @@ header {
 .search-results small {
   display: block;
 }
+.search-empty {
+  padding: 13px 11px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
 .search-results strong {
   font-size: 12px;
   line-height: 1.25;
