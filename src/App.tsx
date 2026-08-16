@@ -1454,6 +1454,7 @@ export default function App() {
       })),
     ]);
     setModal(false);
+    setAppointmentPickerOpen(false);
     setForm({
       patient: "",
       date: nextBookableDate(),
@@ -1468,9 +1469,23 @@ export default function App() {
         : "Atendimento agendado com sucesso",
     );
   }
-  function openAt(date: string, time: string) {
-    setForm((f) => ({ ...f, date, time }));
+  function closeAppointmentModal() {
+    setModal(false);
+    setAppointmentPickerOpen(false);
+  }
+  function openNewAppointment(date = nextBookableDate(), time = "08:00") {
+    setForm({
+      patient: "",
+      date,
+      time,
+      mode: "Online",
+      recurring: "Não repetir",
+    });
+    setAppointmentPickerOpen(false);
     setModal(true);
+  }
+  function openAt(date: string, time: string) {
+    openNewAppointment(date, time);
   }
   function updateAppointment(
     id: number,
@@ -2072,7 +2087,9 @@ export default function App() {
             <Agenda
               appointments={appointments}
               openAt={openAt}
-              setModal={setModal}
+              setModal={(visible) =>
+                visible ? openNewAppointment() : closeAppointmentModal()
+              }
               select={openAppointment}
               notify={notify}
             />
@@ -2081,7 +2098,9 @@ export default function App() {
             <Overview
               appointments={appointments}
               profiles={profiles}
-              setModal={setModal}
+              setModal={(visible) =>
+                visible ? openNewAppointment() : closeAppointmentModal()
+              }
               select={openAppointment}
               go={setView}
             />
@@ -2118,7 +2137,7 @@ export default function App() {
         </div>
       </main>
       {modal && (
-        <div className="modal-backdrop" onMouseDown={() => setModal(false)}>
+        <div className="modal-backdrop" onMouseDown={closeAppointmentModal}>
           <form
             className="modal"
             onSubmit={createAppointment}
@@ -2130,7 +2149,7 @@ export default function App() {
                 <h2>Agendar atendimento</h2>
                 <p>A sessão terá duração padrão de 50 minutos.</p>
               </div>
-              <button type="button" onClick={() => setModal(false)}>
+              <button type="button" onClick={closeAppointmentModal}>
                 <X />
               </button>
             </div>
@@ -2144,7 +2163,6 @@ export default function App() {
                 }}
                 onFocus={() => setAppointmentPickerOpen(true)}
                 placeholder="Nome do paciente"
-                autoFocus
               />
               {appointmentPickerOpen &&
                 appointmentPatientResults.length > 0 && (
@@ -2257,7 +2275,7 @@ export default function App() {
               <button
                 type="button"
                 className="secondary"
-                onClick={() => setModal(false)}
+                onClick={closeAppointmentModal}
               >
                 Cancelar
               </button>

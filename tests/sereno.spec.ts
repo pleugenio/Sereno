@@ -58,6 +58,10 @@ test("fluxo profissional: agenda, paciente, busca, financeiro e configurações"
   await expect(page.getByText("Kamilla Campos Eugenio")).toBeVisible();
 
   await page.getByRole("button", { name: "Agenda", exact: true }).click();
+  await page.locator(".slot:has(.add-slot)").first().click();
+  await expect(page.getByLabel("Paciente")).toHaveValue("");
+  await expect(page.locator(".patient-picker")).not.toBeVisible();
+  await page.getByRole("button", { name: "Cancelar", exact: true }).click();
   await page.getByRole("button", { name: /Novo atendimento/ }).click();
   await page.getByLabel("Paciente").fill("Paciente Teste E2E");
   await page.getByRole("button", { name: /Agendar atendimento/ }).click();
