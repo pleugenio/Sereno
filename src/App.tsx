@@ -56,6 +56,7 @@ type CalendarBlock = {
   id: number;
   day: number;
   scheduledDate?: string;
+  endDate?: string;
   time: string;
   endTime: string;
   reason: string;
@@ -119,6 +120,9 @@ type AppSettings = {
   sessionDuration: number;
   breakMinutes: number;
   workDays: string[];
+  fixedBreakEnabled: boolean;
+  fixedBreakStart: string;
+  fixedBreakEnd: string;
   videoProvider: "Google Meet" | "Microsoft Teams";
 };
 const defaultSettings: AppSettings = {
@@ -132,6 +136,9 @@ const defaultSettings: AppSettings = {
   sessionDuration: 50,
   breakMinutes: 10,
   workDays: ["Seg", "Ter", "Qua", "Qui", "Sex"],
+  fixedBreakEnabled: false,
+  fixedBreakStart: "12:00",
+  fixedBreakEnd: "13:00",
   videoProvider: "Google Meet",
 };
 
@@ -325,6 +332,9 @@ function appointmentIsoDate(appointment: Appointment) {
   return appointment.scheduledDate || legacyWeekDate(appointment.day);
 }
 function blockAppliesToDate(block: CalendarBlock, date: string) {
+  if (block.scheduledDate && block.endDate) {
+    return date >= block.scheduledDate && date <= block.endDate;
+  }
   return block.recurring
     ? block.day === dayFromIsoDate(date)
     : (block.scheduledDate || legacyWeekDate(block.day)) === date;
@@ -1720,6 +1730,37 @@ export default function App() {
     return true;
   }
   function saveSettings(next: AppSettings) {
+    const dayNumbers: Record<string, number> = {
+      Dom: 0,
+      Seg: 1,
+      Ter: 2,
+      Qua: 3,
+      Qui: 4,
+      Sex: 5,
+      Sáb: 6,
+    };
+    const currentBlocks: (CalendarBlock & { managed?: string })[] = JSON.parse(
+      localStorage.getItem("sereno-blocks") || "[]",
+    );
+    const personalBlocks = currentBlocks.filter(
+      (block) => block.managed !== "fixed-break",
+    );
+    const fixedBreaks = next.fixedBreakEnabled
+      ? next.workDays.map((day, index) => ({
+          id: Date.now() + index,
+          day: dayNumbers[day],
+          time: next.fixedBreakStart,
+          endTime: next.fixedBreakEnd,
+          reason: "Pausa fixa",
+          allDay: false,
+          recurring: true,
+          managed: "fixed-break",
+        }))
+      : [];
+    localStorage.setItem(
+      "sereno-blocks",
+      JSON.stringify([...personalBlocks, ...fixedBreaks]),
+    );
     setSettings(next);
     localStorage.setItem("sereno-settings", JSON.stringify(next));
     notify("Configurações salvas");
@@ -2817,6 +2858,7 @@ function Agenda({
   );
   const [blockForm, setBlockForm] = useState({
     date: nextBookableDate(),
+    endDate: nextBookableDate(),
     time: "08:00",
     endTime: "09:00",
     reason: "Compromisso pessoal",
@@ -2830,10 +2872,20 @@ function Agenda({
     e.preventDefault();
     const day = fromIsoDate(blockForm.date).getDay();
     if (day === 0 || day === 6) return;
+    if (blockForm.endDate < blockForm.date) {
+      notify("A data final deve ser igual ou posterior à data inicial");
+      return;
+    }
+    const candidate = {
+      ...blockForm,
+      day,
+      scheduledDate: blockForm.date,
+      endDate: blockForm.reason === "Férias" ? blockForm.endDate : undefined,
+      id: Date.now(),
+    };
     const appointmentConflict = appointments.some(
       (appointment) =>
-        (appointmentIsoDate(appointment) === blockForm.date ||
-          (blockForm.recurring && appointment.day === day)) &&
+        blockAppliesToDate(candidate, appointmentIsoDate(appointment)) &&
         appointment.status !== "Cancelado" &&
         (blockForm.allDay ||
           (appointment.time >= blockForm.time &&
@@ -2843,15 +2895,7 @@ function Agenda({
       notify("Já existe um atendimento nesse período");
       return;
     }
-    const next = [
-      ...blocks,
-      {
-        ...blockForm,
-        day,
-        scheduledDate: blockForm.date,
-        id: Date.now(),
-      },
-    ];
+    const next = [...blocks, candidate];
     setBlocks(next);
     localStorage.setItem("sereno-blocks", JSON.stringify(next));
     setBlockModal(false);
@@ -3219,6 +3263,51 @@ function Agenda({
                 <X />
               </button>
             </div>
+            <div className="block-presets" aria-label="Bloqueios rápidos">
+              <span>Atalhos</span>
+              <button
+                type="button"
+                onClick={() =>
+                  setBlockForm({
+                    ...blockForm,
+                    reason: "Almoço",
+                    time: "12:00",
+                    endTime: "13:00",
+                    allDay: false,
+                    recurring: true,
+                  })
+                }
+              >
+                Almoço semanal
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setBlockForm({
+                    ...blockForm,
+                    reason: "Férias",
+                    allDay: true,
+                    recurring: false,
+                    endDate: blockForm.date,
+                  })
+                }
+              >
+                Período de férias
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setBlockForm({
+                    ...blockForm,
+                    reason: "Compromisso pessoal",
+                    allDay: false,
+                    recurring: false,
+                  })
+                }
+              >
+                Compromisso
+              </button>
+            </div>
             <div className="form-row">
               <label>
                 Data
@@ -3232,9 +3321,20 @@ function Agenda({
                 Motivo
                 <select
                   value={blockForm.reason}
-                  onChange={(e) =>
-                    setBlockForm({ ...blockForm, reason: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const reason = e.target.value;
+                    setBlockForm({
+                      ...blockForm,
+                      reason,
+                      allDay: reason === "Férias" ? true : blockForm.allDay,
+                      recurring:
+                        reason === "Férias" ? false : blockForm.recurring,
+                      endDate:
+                        reason === "Férias"
+                          ? blockForm.date
+                          : blockForm.endDate,
+                    });
+                  }}
                 >
                   <option>Compromisso pessoal</option>
                   <option>Almoço</option>
@@ -3245,16 +3345,35 @@ function Agenda({
                 </select>
               </label>
             </div>
-            <label className="check-line">
-              <input
-                type="checkbox"
-                checked={blockForm.allDay}
-                onChange={(e) =>
-                  setBlockForm({ ...blockForm, allDay: e.target.checked })
-                }
-              />
-              <span>Bloquear o dia inteiro</span>
-            </label>
+            {blockForm.reason === "Férias" && (
+              <div className="form-row vacation-range">
+                <label>
+                  Último dia das férias
+                  <BrazilianDateField
+                    value={blockForm.endDate}
+                    min={blockForm.date}
+                    onChange={(endDate) =>
+                      setBlockForm({ ...blockForm, endDate })
+                    }
+                  />
+                </label>
+                <div className="setting-note">
+                  A agenda ficará indisponível em todos os dias desse período.
+                </div>
+              </div>
+            )}
+            {blockForm.reason !== "Férias" && (
+              <label className="check-line">
+                <input
+                  type="checkbox"
+                  checked={blockForm.allDay}
+                  onChange={(e) =>
+                    setBlockForm({ ...blockForm, allDay: e.target.checked })
+                  }
+                />
+                <span>Bloquear o dia inteiro</span>
+              </label>
+            )}
             {!blockForm.allDay && (
               <div className="form-row">
                 <label>
@@ -3282,16 +3401,18 @@ function Agenda({
                 </label>
               </div>
             )}
-            <label className="check-line">
-              <input
-                type="checkbox"
-                checked={blockForm.recurring}
-                onChange={(e) =>
-                  setBlockForm({ ...blockForm, recurring: e.target.checked })
-                }
-              />
-              <span>Repetir toda semana</span>
-            </label>
+            {blockForm.reason !== "Férias" && (
+              <label className="check-line">
+                <input
+                  type="checkbox"
+                  checked={blockForm.recurring}
+                  onChange={(e) =>
+                    setBlockForm({ ...blockForm, recurring: e.target.checked })
+                  }
+                />
+                <span>Repetir toda semana</span>
+              </label>
+            )}
             <div className="modal-actions">
               <button
                 type="button"
@@ -6132,6 +6253,59 @@ function SettingsPage({
                     }
                   />
                 </label>
+              </div>
+              <div className="settings-subsection">
+                <div>
+                  <strong>Pausa fixa</strong>
+                  <p>
+                    Reserve automaticamente um horário recorrente, como o
+                    almoço.
+                  </p>
+                </div>
+                <label className="switch-line">
+                  <input
+                    type="checkbox"
+                    checked={draft.fixedBreakEnabled}
+                    onChange={(e) =>
+                      setDraft({
+                        ...draft,
+                        fixedBreakEnabled: e.target.checked,
+                      })
+                    }
+                  />
+                  <span>Ativar pausa semanal</span>
+                </label>
+                {draft.fixedBreakEnabled && (
+                  <div className="form-row">
+                    <label>
+                      Início da pausa
+                      <input
+                        type="time"
+                        value={draft.fixedBreakStart}
+                        onChange={(e) =>
+                          setDraft({
+                            ...draft,
+                            fixedBreakStart: e.target.value,
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      Término da pausa
+                      <input
+                        type="time"
+                        value={draft.fixedBreakEnd}
+                        onChange={(e) =>
+                          setDraft({ ...draft, fixedBreakEnd: e.target.value })
+                        }
+                      />
+                    </label>
+                  </div>
+                )}
+                <div className="setting-note">
+                  Aplicada aos dias selecionados acima. Férias e exceções ficam
+                  em <strong>Agenda → Bloquear horário</strong>.
+                </div>
               </div>
             </>
           )}

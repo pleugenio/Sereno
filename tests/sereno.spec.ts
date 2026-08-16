@@ -103,8 +103,27 @@ test("fluxo profissional: agenda, paciente, busca, financeiro e configurações"
     .click();
   await page.getByRole("button", { name: "Aparência" }).click();
   await page.getByText("Oceano", { exact: true }).click();
+  await page
+    .getByRole("main")
+    .getByRole("button", { name: "Agenda", exact: true })
+    .click();
+  await page.getByLabel("Ativar pausa semanal").check();
+  await page.getByLabel("Início da pausa").fill("12:00");
+  await page.getByLabel("Término da pausa").fill("13:00");
   await page.getByRole("button", { name: /Salvar configurações/ }).click();
   await expect(page.getByText("Configurações salvas")).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const blocks = JSON.parse(
+          localStorage.getItem("sereno-blocks") || "[]",
+        );
+        return blocks.filter(
+          (block: { managed?: string }) => block.managed === "fixed-break",
+        ).length;
+      }),
+    )
+    .toBe(5);
 });
 
 test("fluxo administrador e ações principais", async ({ page }) => {
@@ -133,6 +152,12 @@ test("bloqueio de agenda e cadastro infantojuvenil com exclusão", async ({
   await login(page);
   await page.getByRole("button", { name: "Agenda", exact: true }).click();
   await page.getByRole("button", { name: /Bloquear horário/ }).click();
+  await expect(
+    page.getByRole("button", { name: "Almoço semanal" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Período de férias" }),
+  ).toBeVisible();
   await page.getByLabel("Motivo").selectOption("Almoço");
   await page.getByRole("button", { name: /Criar bloqueio/ }).click();
   await expect(page.getByText("Horário bloqueado com sucesso")).toBeVisible();

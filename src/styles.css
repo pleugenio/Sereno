@@ -1835,6 +1835,72 @@ header {
 .setting-note svg {
   width: 16px;
 }
+.block-presets {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -8px 0 22px;
+}
+.block-presets > span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  margin-right: 2px;
+}
+.block-presets button {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #f7faf8;
+  color: var(--deep);
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.block-presets button:hover {
+  border-color: var(--green);
+  background: #edf4f0;
+}
+.vacation-range {
+  align-items: end;
+}
+.vacation-range .setting-note {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.settings-subsection {
+  border-top: 1px solid var(--line);
+  margin-top: 4px;
+  padding-top: 22px;
+}
+.settings-subsection > div:first-child strong {
+  color: var(--deep);
+  font-size: 15px;
+}
+.settings-subsection > div:first-child p {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 3px 0 16px;
+}
+.switch-line {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #52635e;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+.switch-line input {
+  width: 17px !important;
+  min-height: 17px !important;
+  margin: 0;
+}
+.settings-subsection .setting-note {
+  line-height: 1.5;
+}
 @media (max-width: 760px) {
   .settings-layout {
     grid-template-columns: 1fr;
