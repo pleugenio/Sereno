@@ -1352,6 +1352,7 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [appointmentPickerOpen, setAppointmentPickerOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [patientToOpen, setPatientToOpen] = useState<string | null>(null);
   const [patientOpenNonce, setPatientOpenNonce] = useState(0);
   const [toast, setToast] = useState("");
@@ -1435,7 +1436,10 @@ export default function App() {
   }
   const results = filterPatients(search);
   const appointmentPatientResults = filterPatients(form.patient);
-  const pending = appointments.filter((a) => a.status === "Aguardando").length;
+  const pendingAppointments = appointments.filter(
+    (appointment) => appointment.status === "Aguardando",
+  );
+  const pending = pendingAppointments.length;
 
   function save(next: Appointment[]) {
     setAppointments(next);
@@ -2102,15 +2106,84 @@ export default function App() {
             </div>
           )}
           <div className="header-actions">
-            <button
-              className="icon-button"
-              onClick={() =>
-                notify(`${pending} confirmações aguardando resposta`)
-              }
+            <div
+              className="notification-center"
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                  setNotificationsOpen(false);
+                }
+              }}
             >
-              <Bell size={19} />
-              {pending > 0 && <i />}
-            </button>
+              <button
+                className={`icon-button ${notificationsOpen ? "active" : ""}`}
+                aria-label="Notificações"
+                aria-expanded={notificationsOpen}
+                onClick={() => setNotificationsOpen((open) => !open)}
+              >
+                <Bell size={19} />
+                {pending > 0 && <i />}
+              </button>
+              {notificationsOpen && (
+                <div className="notification-panel">
+                  <div className="notification-head">
+                    <div>
+                      <strong>Notificações</strong>
+                      <span>
+                        {pending > 0
+                          ? `${pending} aguardando confirmação`
+                          : "Tudo acompanhado por aqui"}
+                      </span>
+                    </div>
+                    {pending > 0 && <b>{pending}</b>}
+                  </div>
+                  {pendingAppointments.length > 0 ? (
+                    <div className="notification-list">
+                      {pendingAppointments.slice(0, 5).map((appointment) => (
+                        <button
+                          type="button"
+                          key={appointment.id}
+                          onClick={() => {
+                            openAppointment(appointment);
+                            setNotificationsOpen(false);
+                          }}
+                        >
+                          <span className="notification-icon">
+                            <CalendarClock size={17} />
+                          </span>
+                          <span>
+                            <strong>{appointment.patient}</strong>
+                            <small>Aguardando confirmação</small>
+                            <em>
+                              {formatCalendarDate(
+                                appointmentIsoDate(appointment),
+                              )}{" "}
+                              · {appointment.time}
+                            </em>
+                          </span>
+                          <ChevronRight size={16} />
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="notification-empty">
+                      <CheckCircle2 />
+                      <strong>Nenhuma pendência agora</strong>
+                      <span>Novos alertas aparecerão aqui.</span>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    className="notification-footer"
+                    onClick={() => {
+                      setView("agenda");
+                      setNotificationsOpen(false);
+                    }}
+                  >
+                    Ver agenda completa <ArrowRight size={15} />
+                  </button>
+                </div>
+              )}
+            </div>
             <div
               className="profile"
               onClick={() =>
