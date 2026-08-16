@@ -1921,8 +1921,8 @@ header {
 }
 .preset-avatar-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 9px;
 }
 .preset-avatar-grid button {
   position: relative;
@@ -1930,12 +1930,12 @@ header {
   gap: 7px;
   min-width: 0;
   border: 1px solid var(--line);
-  border-radius: 13px;
-  padding: 7px 7px 9px;
+  border-radius: 12px;
+  padding: 6px 6px 8px;
   background: #fff;
   color: #52635e;
   text-align: center;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
 }
 .preset-avatar-grid button:hover,
@@ -1962,6 +1962,11 @@ header {
   background: var(--green);
   color: #fff;
   box-shadow: 0 2px 8px #173b3150;
+}
+@media (max-width: 900px) {
+  .preset-avatar-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 @media (max-width: 560px) {
   .preset-avatar-grid {

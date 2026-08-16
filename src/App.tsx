@@ -152,6 +152,12 @@ const presetAvatars = [
   { name: "Mente em equilíbrio", src: "/avatars/mente-em-equilibrio.webp" },
   { name: "Natureza serena", src: "/avatars/natureza-serena.webp" },
   { name: "Conexão humana", src: "/avatars/conexao-humana.webp" },
+  { name: "Respiração tranquila", src: "/avatars/respiracao-tranquila.webp" },
+  { name: "Acolhimento", src: "/avatars/acolhimento.webp" },
+  { name: "Novos horizontes", src: "/avatars/novos-horizontes.webp" },
+  { name: "Florescer", src: "/avatars/florescer.webp" },
+  { name: "Diálogo aberto", src: "/avatars/dialogo-aberto.webp" },
+  { name: "Força interior", src: "/avatars/forca-interior.webp" },
 ];
 
 const initialAppointments: Appointment[] = [
