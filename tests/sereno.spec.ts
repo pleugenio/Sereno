@@ -108,8 +108,11 @@ test("fluxo profissional: agenda, paciente, busca, financeiro e configurações"
     .getByRole("button", { name: "Agenda", exact: true })
     .click();
   await page.getByLabel("Ativar pausa semanal").check();
-  await page.getByLabel("Início da pausa").fill("12:00");
-  await page.getByLabel("Término da pausa").fill("13:00");
+  await page.getByLabel("Início da pausa").selectOption("12:00");
+  await page.getByLabel("Término da pausa").selectOption("13:00");
+  await page.getByRole("button", { name: "Idioma e região" }).click();
+  await expect(page.getByLabel("Idioma")).toHaveValue("pt-BR");
+  await page.getByLabel("Fuso horário").selectOption("America/Manaus");
   await page.getByRole("button", { name: /Salvar configurações/ }).click();
   await expect(page.getByText("Configurações salvas")).toBeVisible();
   await expect
@@ -124,6 +127,14 @@ test("fluxo profissional: agenda, paciente, busca, financeiro e configurações"
       }),
     )
     .toBe(5);
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          JSON.parse(localStorage.getItem("sereno-settings") || "{}").timezone,
+      ),
+    )
+    .toBe("America/Manaus");
 });
 
 test("fluxo administrador e ações principais", async ({ page }) => {

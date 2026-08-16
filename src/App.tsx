@@ -123,6 +123,8 @@ type AppSettings = {
   fixedBreakEnabled: boolean;
   fixedBreakStart: string;
   fixedBreakEnd: string;
+  language: "pt-BR";
+  timezone: string;
   videoProvider: "Google Meet" | "Microsoft Teams";
 };
 const defaultSettings: AppSettings = {
@@ -139,6 +141,8 @@ const defaultSettings: AppSettings = {
   fixedBreakEnabled: false,
   fixedBreakStart: "12:00",
   fixedBreakEnd: "13:00",
+  language: "pt-BR",
+  timezone: "America/Sao_Paulo",
   videoProvider: "Google Meet",
 };
 
@@ -275,6 +279,11 @@ const nav = [
   { id: "financeiro" as View, label: "Financeiro", icon: WalletCards },
 ];
 const weekdays = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
+const brazilianTimeOptions = Array.from({ length: 24 * 6 }, (_, index) => {
+  const hours = String(Math.floor(index / 6)).padStart(2, "0");
+  const minutes = String((index % 6) * 10).padStart(2, "0");
+  return `${hours}:${minutes}`;
+});
 const monthNames = [
   "janeiro",
   "fevereiro",
@@ -3391,13 +3400,16 @@ function Agenda({
                 </label>
                 <label>
                   Término
-                  <input
-                    type="time"
+                  <select
                     value={blockForm.endTime}
                     onChange={(e) =>
                       setBlockForm({ ...blockForm, endTime: e.target.value })
                     }
-                  />
+                  >
+                    {brazilianTimeOptions.map((time) => (
+                      <option key={time}>{time}</option>
+                    ))}
+                  </select>
                 </label>
               </div>
             )}
@@ -6022,6 +6034,7 @@ function SettingsPage({
     | "Perfil"
     | "Aparência"
     | "Agenda"
+    | "Idioma e região"
     | "Atendimento online"
     | "Dados e segurança"
   >("Perfil");
@@ -6055,6 +6068,7 @@ function SettingsPage({
               "Perfil",
               "Aparência",
               "Agenda",
+              "Idioma e região",
               "Atendimento online",
               "Dados e segurança",
             ] as const
@@ -6207,23 +6221,29 @@ function SettingsPage({
               <div className="form-row">
                 <label>
                   Início
-                  <input
-                    type="time"
+                  <select
                     value={draft.workStart}
                     onChange={(e) =>
                       setDraft({ ...draft, workStart: e.target.value })
                     }
-                  />
+                  >
+                    {brazilianTimeOptions.map((time) => (
+                      <option key={time}>{time}</option>
+                    ))}
+                  </select>
                 </label>
                 <label>
                   Término
-                  <input
-                    type="time"
+                  <select
                     value={draft.workEnd}
                     onChange={(e) =>
                       setDraft({ ...draft, workEnd: e.target.value })
                     }
-                  />
+                  >
+                    {brazilianTimeOptions.map((time) => (
+                      <option key={time}>{time}</option>
+                    ))}
+                  </select>
                 </label>
               </div>
               <div className="form-row">
@@ -6279,8 +6299,7 @@ function SettingsPage({
                   <div className="form-row">
                     <label>
                       Início da pausa
-                      <input
-                        type="time"
+                      <select
                         value={draft.fixedBreakStart}
                         onChange={(e) =>
                           setDraft({
@@ -6288,17 +6307,24 @@ function SettingsPage({
                             fixedBreakStart: e.target.value,
                           })
                         }
-                      />
+                      >
+                        {brazilianTimeOptions.map((time) => (
+                          <option key={time}>{time}</option>
+                        ))}
+                      </select>
                     </label>
                     <label>
                       Término da pausa
-                      <input
-                        type="time"
+                      <select
                         value={draft.fixedBreakEnd}
                         onChange={(e) =>
                           setDraft({ ...draft, fixedBreakEnd: e.target.value })
                         }
-                      />
+                      >
+                        {brazilianTimeOptions.map((time) => (
+                          <option key={time}>{time}</option>
+                        ))}
+                      </select>
                     </label>
                   </div>
                 )}
@@ -6306,6 +6332,59 @@ function SettingsPage({
                   Aplicada aos dias selecionados acima. Férias e exceções ficam
                   em <strong>Agenda → Bloquear horário</strong>.
                 </div>
+              </div>
+            </>
+          )}
+          {tab === "Idioma e região" && (
+            <>
+              <div className="settings-head">
+                <Globe2 />
+                <div>
+                  <h2>Idioma e região</h2>
+                  <p>Idioma, formato de horário e fuso usados pelo Sereno.</p>
+                </div>
+              </div>
+              <div className="form-row">
+                <label>
+                  Idioma
+                  <select
+                    value={draft.language}
+                    onChange={(e) =>
+                      setDraft({
+                        ...draft,
+                        language: e.target.value as AppSettings["language"],
+                      })
+                    }
+                  >
+                    <option value="pt-BR">Português (Brasil)</option>
+                    <option disabled>English — em breve</option>
+                    <option disabled>Español — em breve</option>
+                  </select>
+                </label>
+                <label>
+                  Fuso horário
+                  <select
+                    value={draft.timezone}
+                    onChange={(e) =>
+                      setDraft({ ...draft, timezone: e.target.value })
+                    }
+                  >
+                    <option value="America/Sao_Paulo">
+                      Brasília — UTC−03:00
+                    </option>
+                    <option value="America/Manaus">Manaus — UTC−04:00</option>
+                    <option value="America/Rio_Branco">
+                      Rio Branco — UTC−05:00
+                    </option>
+                    <option value="America/Noronha">
+                      Fernando de Noronha — UTC−02:00
+                    </option>
+                  </select>
+                </label>
+              </div>
+              <div className="setting-note success">
+                <Clock3 />
+                Horários no padrão brasileiro de 24 horas, como 08:00 e 18:00.
               </div>
             </>
           )}
