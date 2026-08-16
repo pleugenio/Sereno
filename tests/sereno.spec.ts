@@ -279,6 +279,38 @@ test("navegação principal funciona em tela móvel", async ({ page }) => {
   await expect(page.locator(".sidebar")).not.toHaveClass(/open/);
 });
 
+test("ajuda rápida e modo simples orientam tarefas principais", async ({
+  page,
+}) => {
+  await login(page);
+  await page.getByRole("button", { name: "Abrir ajuda rápida" }).click();
+  await expect(
+    page.getByRole("heading", { name: "O que você quer fazer?" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: /Ativar modo simples/ }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-simple", "true");
+  await expect(page.getByText("Modo simples ativado")).toBeVisible();
+
+  await page.getByRole("button", { name: /Cadastrar paciente/ }).click();
+  await expect(
+    page.getByRole("heading", { name: "Cadastrar paciente" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Cancelar", exact: true }).click();
+
+  await page.getByRole("button", { name: "Abrir ajuda rápida" }).click();
+  await page.getByRole("button", { name: /Registrar pagamento/ }).click();
+  await expect(page.getByRole("heading", { name: "Financeiro" })).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          JSON.parse(localStorage.getItem("sereno-settings") || "{}")
+            .simpleMode,
+      ),
+    )
+    .toBe(true);
+});
+
 test("fecha atendimento e organiza financeiro e recibo", async ({ page }) => {
   await login(page);
   await page

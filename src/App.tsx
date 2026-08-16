@@ -40,6 +40,7 @@ import {
   SlidersHorizontal,
   UserX,
   Download,
+  CircleHelp,
 } from "lucide-react";
 
 type View =
@@ -132,6 +133,7 @@ type AppSettings = {
   language: "pt-BR";
   timezone: string;
   videoProvider: "Google Meet" | "Microsoft Teams";
+  simpleMode: boolean;
 };
 const defaultSettings: AppSettings = {
   theme: "sereno",
@@ -151,6 +153,7 @@ const defaultSettings: AppSettings = {
   language: "pt-BR",
   timezone: "America/Sao_Paulo",
   videoProvider: "Google Meet",
+  simpleMode: false,
 };
 const presetAvatars = [
   { name: "Escuta acolhedora", src: "/avatars/escuta-acolhedora.webp" },
@@ -1393,6 +1396,7 @@ export default function App() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [appointmentPickerOpen, setAppointmentPickerOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [patientToOpen, setPatientToOpen] = useState<string | null>(null);
   const [patientOpenNonce, setPatientOpenNonce] = useState(0);
   const [toast, setToast] = useState("");
@@ -1447,7 +1451,8 @@ export default function App() {
   });
   useEffect(() => {
     document.documentElement.dataset.theme = settings.theme || "sereno";
-  }, [settings.theme]);
+    document.documentElement.dataset.simple = String(settings.simpleMode);
+  }, [settings.simpleMode, settings.theme]);
 
   const patients = useMemo(
     () =>
@@ -2216,6 +2221,117 @@ export default function App() {
             </div>
           )}
           <div className="header-actions">
+            {userRole === "professional" && (
+              <div
+                className="quick-help-center"
+                onBlur={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget)) {
+                    setHelpOpen(false);
+                  }
+                }}
+              >
+                <button
+                  className={`simple-help-trigger ${helpOpen ? "active" : ""}`}
+                  aria-label="Abrir ajuda rápida"
+                  aria-expanded={helpOpen}
+                  onClick={() => setHelpOpen((open) => !open)}
+                >
+                  <CircleHelp size={18} />
+                  <span>Ajuda</span>
+                </button>
+                {helpOpen && (
+                  <div className="quick-help-panel">
+                    <div>
+                      <span className="eyebrow">AJUDA RÁPIDA</span>
+                      <h2>O que você quer fazer?</h2>
+                      <p>Escolha uma tarefa e o Sereno leva você até ela.</p>
+                    </div>
+                    <div className="quick-help-actions">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          openNewAppointment();
+                          setHelpOpen(false);
+                        }}
+                      >
+                        <CalendarDays />
+                        <span>
+                          <strong>Agendar atendimento</strong>
+                          <small>Escolher paciente, dia e horário</small>
+                        </span>
+                        <ChevronRight />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPatientModal(true);
+                          setHelpOpen(false);
+                        }}
+                      >
+                        <UsersRound />
+                        <span>
+                          <strong>Cadastrar paciente</strong>
+                          <small>Adicionar contato e dados básicos</small>
+                        </span>
+                        <ChevronRight />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setView("agenda");
+                          setHelpOpen(false);
+                        }}
+                      >
+                        <CalendarClock />
+                        <span>
+                          <strong>Ver minha agenda</strong>
+                          <small>Consultar dia, semana ou mês</small>
+                        </span>
+                        <ChevronRight />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setView("financeiro");
+                          setHelpOpen(false);
+                        }}
+                      >
+                        <WalletCards />
+                        <span>
+                          <strong>Registrar pagamento</strong>
+                          <small>Ver cobranças e recebimentos</small>
+                        </span>
+                        <ChevronRight />
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      className={`simple-mode-toggle ${settings.simpleMode ? "enabled" : ""}`}
+                      onClick={() => {
+                        saveSettings({
+                          ...settings,
+                          simpleMode: !settings.simpleMode,
+                        });
+                      }}
+                    >
+                      <Sparkles size={17} />
+                      <span>
+                        <strong>
+                          {settings.simpleMode
+                            ? "Modo simples ativado"
+                            : "Ativar modo simples"}
+                        </strong>
+                        <small>
+                          {settings.simpleMode
+                            ? "Toque para voltar ao tamanho normal"
+                            : "Textos maiores e menos informação por vez"}
+                        </small>
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
             <div
               className="notification-center"
               onBlur={(event) => {
@@ -6712,6 +6828,31 @@ function SettingsPage({
               <div className="setting-note">
                 O tema altera somente a aparência. Informações e funcionalidades
                 permanecem iguais.
+              </div>
+              <div className="simple-mode-setting">
+                <div>
+                  <CircleHelp />
+                  <span>
+                    <strong>Modo simples</strong>
+                    <small>
+                      Aumenta textos e botões e reduz a quantidade de informação
+                      exibida por vez.
+                    </small>
+                  </span>
+                </div>
+                <label className="switch-line">
+                  <input
+                    type="checkbox"
+                    checked={draft.simpleMode}
+                    onChange={(event) => {
+                      const simpleMode = event.target.checked;
+                      setDraft({ ...draft, simpleMode });
+                      document.documentElement.dataset.simple =
+                        String(simpleMode);
+                    }}
+                  />
+                  <span>{draft.simpleMode ? "Ativado" : "Desativado"}</span>
+                </label>
               </div>
             </>
           )}

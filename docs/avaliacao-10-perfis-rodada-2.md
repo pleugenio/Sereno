@@ -172,3 +172,17 @@ Ele ainda não atende adequadamente:
 > **Sereno organiza a agenda e o financeiro do psicólogo autônomo, online ou presencial, inclusive com atendimentos sociais — de forma leve e sem misturar gestão com conteúdo clínico.**
 
 Essa promessa é verdadeira hoje no protótipo. Prometer clínica completa, gestão de equipes ou atendimento familiar ainda seria prematuro.
+
+## Evolução para profissionais com pouca experiência tecnológica
+
+Após esta rodada, foi criada uma primeira resposta específica para o perfil de Roberto:
+
+- Botão “Ajuda” permanentemente visível no cabeçalho.
+- Pergunta direta “O que você quer fazer?” em vez de documentação extensa.
+- Atalhos guiados para agendar atendimento, cadastrar paciente, consultar agenda e registrar pagamento.
+- Modo simples ativável pela própria ajuda ou em Configurações → Aparência.
+- Textos, campos, botões e áreas de toque maiores no Modo simples.
+- Adaptação da ajuda rápida para telas móveis.
+- Preferência salva no perfil do navegador.
+
+Com essa evolução, a estimativa do perfil Roberto sobe de **6,5 para 7,5**, ainda classificada como atendimento parcial. A aprovação definitiva depende de teste de usabilidade moderado com profissionais reais de baixa familiaridade tecnológica, observando se conseguem concluir tarefas sem orientação verbal.
