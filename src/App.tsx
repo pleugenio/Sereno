@@ -131,7 +131,7 @@ type AppSettings = {
 const defaultSettings: AppSettings = {
   theme: "sereno",
   professionalName: "Kamilla Campos Eugenio",
-  crp: "",
+  crp: "CRP 06/123456",
   professionalEmail: "",
   professionalPhone: "",
   avatarDataUrl: "",
@@ -1391,12 +1391,14 @@ export default function App() {
         JSON.stringify(initialProfiles),
     ),
   );
-  const [settings, setSettings] = useState<AppSettings>(() =>
-    JSON.parse(
-      localStorage.getItem("sereno-settings") ||
-        JSON.stringify(defaultSettings),
-    ),
-  );
+  const [settings, setSettings] = useState<AppSettings>(() => {
+    const stored = JSON.parse(localStorage.getItem("sereno-settings") || "{}");
+    return {
+      ...defaultSettings,
+      ...stored,
+      crp: stored.crp?.trim() || defaultSettings.crp,
+    };
+  });
   useEffect(() => {
     document.documentElement.dataset.theme = settings.theme || "sereno";
   }, [settings.theme]);
@@ -2137,7 +2139,9 @@ export default function App() {
                     : settings.professionalName}
                 </strong>
                 <span>
-                  {userRole === "admin" ? "Administrador" : "Psicóloga"}
+                  {userRole === "admin"
+                    ? "Administrador"
+                    : `Psicóloga · ${settings.crp}`}
                 </span>
               </div>
             </div>

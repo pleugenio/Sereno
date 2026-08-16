@@ -56,6 +56,7 @@ test("fluxo profissional: agenda, paciente, busca, financeiro e configurações"
 }) => {
   await login(page);
   await expect(page.getByText("Kamilla Campos Eugenio")).toBeVisible();
+  await expect(page.getByText("Psicóloga · CRP 06/123456")).toBeVisible();
 
   await page.getByRole("button", { name: "Agenda", exact: true }).click();
   await page.locator(".slot:has(.add-slot)").first().click();
@@ -105,6 +106,7 @@ test("fluxo profissional: agenda, paciente, busca, financeiro e configurações"
   await page
     .getByRole("button", { name: "Configurações", exact: true })
     .click();
+  await expect(page.getByLabel("CRP")).toHaveValue("CRP 06/123456");
   await page.getByLabel("Escolher foto do perfil").setInputFiles({
     name: "avatar.png",
     mimeType: "image/png",
