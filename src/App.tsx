@@ -147,6 +147,12 @@ const defaultSettings: AppSettings = {
   timezone: "America/Sao_Paulo",
   videoProvider: "Google Meet",
 };
+const presetAvatars = [
+  { name: "Escuta acolhedora", src: "/avatars/escuta-acolhedora.webp" },
+  { name: "Mente em equilíbrio", src: "/avatars/mente-em-equilibrio.webp" },
+  { name: "Natureza serena", src: "/avatars/natureza-serena.webp" },
+  { name: "Conexão humana", src: "/avatars/conexao-humana.webp" },
+];
 
 const initialAppointments: Appointment[] = [
   {
@@ -6226,6 +6232,38 @@ function SettingsPage({
                   {avatarError && (
                     <small className="field-error">{avatarError}</small>
                   )}
+                </div>
+              </div>
+              <div className="preset-avatar-section">
+                <div>
+                  <strong>Avatares Sereno</strong>
+                  <p>
+                    Ou escolha uma ilustração pronta para representar seu
+                    perfil.
+                  </p>
+                </div>
+                <div className="preset-avatar-grid">
+                  {presetAvatars.map((avatar) => (
+                    <button
+                      type="button"
+                      key={avatar.src}
+                      className={
+                        draft.avatarDataUrl === avatar.src ? "selected" : ""
+                      }
+                      onClick={() =>
+                        setDraft({ ...draft, avatarDataUrl: avatar.src })
+                      }
+                      aria-label={`Usar avatar ${avatar.name}`}
+                    >
+                      <img src={avatar.src} alt="" />
+                      <span>{avatar.name}</span>
+                      {draft.avatarDataUrl === avatar.src && (
+                        <i aria-hidden="true">
+                          <Check size={13} />
+                        </i>
+                      )}
+                    </button>
+                  ))}
                 </div>
               </div>
               <div className="form-row">

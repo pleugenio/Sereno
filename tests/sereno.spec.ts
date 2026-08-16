@@ -114,6 +114,13 @@ test("fluxo profissional: agenda, paciente, busca, financeiro e configurações"
     ),
   });
   await expect(page.getByAltText("Prévia da foto do perfil")).toBeVisible();
+  await page
+    .getByRole("button", { name: "Usar avatar Natureza serena" })
+    .click();
+  await expect(page.getByAltText("Prévia da foto do perfil")).toHaveAttribute(
+    "src",
+    "/avatars/natureza-serena.webp",
+  );
   await page.getByRole("button", { name: "Aparência" }).click();
   await page.getByText("Oceano", { exact: true }).click();
   await page
