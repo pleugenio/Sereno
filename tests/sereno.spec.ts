@@ -143,7 +143,9 @@ test("bloqueio de agenda e cadastro infantojuvenil com exclusão", async ({
   });
   await page.getByRole("button", { name: /Novo atendimento/ }).click();
   await page.getByLabel("Paciente").fill("Conflito com bloqueio E2E");
-  await page.getByLabel("Data").fill(blockedDate);
+  await page
+    .getByLabel("Data")
+    .fill(blockedDate.split("-").reverse().join("/"));
   await page.getByRole("button", { name: /Agendar atendimento/ }).click();
   await expect(
     page.getByText("Este horário está ocupado ou bloqueado"),
@@ -264,7 +266,7 @@ test("prepara sessão com remarcação e cancelamento organizados", async ({
   await expect(page.getByRole("button", { name: "Enviar link" })).toBeVisible();
   await page.getByText("Outras ações").click();
   await page.getByRole("button", { name: "Remarcar sessão" }).click();
-  await page.getByLabel("Data").fill("2026-09-03");
+  await page.getByLabel("Data").fill("03/09/2026");
   await page.getByLabel("Horário").selectOption("11:00");
   await page.getByRole("button", { name: "Confirmar remarcação" }).click();
   await expect(
@@ -295,6 +297,12 @@ test("oferece pacientes para escolha antes de digitar na busca", async ({
   expect(await picker.getByRole("option").count()).toBeLessThanOrEqual(10);
   await picker.getByRole("option").first().click();
   await expect(page.getByPlaceholder("Nome do paciente")).not.toHaveValue("");
+  await expect(page.getByText("Paciente selecionado")).toBeVisible();
+  await expect(picker).toHaveCount(0);
+  await expect(page.getByLabel("Data")).toHaveValue(/\d{2}\/\d{2}\/\d{4}/);
+  await expect(
+    page.getByRole("button", { name: "Abrir calendário" }),
+  ).toBeVisible();
 });
 
 test("busca paciente sem acento e abre cadastro criado pela agenda", async ({
@@ -315,7 +323,7 @@ test("busca paciente sem acento e abre cadastro criado pela agenda", async ({
   await page.getByRole("button", { name: "Agenda", exact: true }).click();
   await page.getByRole("button", { name: /Novo atendimento/ }).click();
   await page.getByLabel("Paciente").fill("Paciente Apenas Agenda E2E");
-  await page.getByLabel("Data").fill("2026-09-02");
+  await page.getByLabel("Data").fill("02/09/2026");
   await page.getByLabel("Horário").selectOption("17:00");
   await page.getByRole("button", { name: /Agendar atendimento/ }).click();
   await search.fill("apenas agenda");
@@ -348,7 +356,7 @@ test("impede conflitos e cria recorrência com datas reais", async ({
   await page.getByRole("button", { name: "Agenda", exact: true }).click();
   await page.getByRole("button", { name: /Novo atendimento/ }).click();
   await page.getByLabel("Paciente").fill("Recorrência Teste E2E");
-  await page.getByLabel("Data").fill("2026-08-31");
+  await page.getByLabel("Data").fill("31/08/2026");
   await page.getByLabel("Horário").selectOption("09:00");
   await page.getByLabel("Recorrência").selectOption("Semanal");
   await page.getByRole("button", { name: /Agendar atendimento/ }).click();
@@ -363,7 +371,7 @@ test("impede conflitos e cria recorrência com datas reais", async ({
 
   await page.getByRole("button", { name: /Novo atendimento/ }).click();
   await page.getByLabel("Paciente").fill("Conflito Teste E2E");
-  await page.getByLabel("Data").fill("2026-08-31");
+  await page.getByLabel("Data").fill("31/08/2026");
   await page.getByLabel("Horário").selectOption("09:00");
   await page.getByRole("button", { name: /Agendar atendimento/ }).click();
   await expect(

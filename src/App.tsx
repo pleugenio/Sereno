@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import professionalLightness from "./assets/sereno-professional-lightness.webp";
 import humanConnection from "./assets/sereno-human-connection.webp";
 import {
@@ -368,6 +368,67 @@ function formatBrazilianDate(value: string) {
   }
   const digits = value.replace(/\D/g, "").slice(0, 8);
   return digits.replace(/(\d{2})(\d)/, "$1/$2").replace(/(\d{2})(\d)/, "$1/$2");
+}
+function brazilianDateToIso(value: string) {
+  const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return null;
+  const [, day, month, year] = match;
+  const iso = `${year}-${month}-${day}`;
+  const parsed = fromIsoDate(iso);
+  return toIsoDate(parsed) === iso ? iso : null;
+}
+function BrazilianDateField({
+  value,
+  onChange,
+  min,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  min?: string;
+}) {
+  const pickerRef = useRef<HTMLInputElement>(null);
+  const [draft, setDraft] = useState(() => formatBrazilianDate(value));
+
+  function commitDraft() {
+    const parsed = brazilianDateToIso(draft);
+    if (parsed && (!min || parsed >= min)) onChange(parsed);
+    else setDraft(formatBrazilianDate(value));
+  }
+
+  return (
+    <div className="brazilian-date-field">
+      <input
+        aria-label="Data"
+        inputMode="numeric"
+        value={draft}
+        onChange={(event) => setDraft(formatBrazilianDate(event.target.value))}
+        onBlur={commitDraft}
+        placeholder="dd/mm/aaaa"
+        maxLength={10}
+        required
+      />
+      <button
+        type="button"
+        aria-label="Abrir calendário"
+        onClick={() => pickerRef.current?.showPicker()}
+      >
+        <CalendarDays size={17} />
+      </button>
+      <input
+        ref={pickerRef}
+        className="native-date-picker"
+        type="date"
+        value={value}
+        min={min}
+        onChange={(event) => {
+          setDraft(formatBrazilianDate(event.target.value));
+          onChange(event.target.value);
+        }}
+        tabIndex={-1}
+        aria-hidden="true"
+      />
+    </div>
+  );
 }
 function formatCalendarDate(value: string, weekday = false) {
   return new Intl.DateTimeFormat("pt-BR", {
@@ -1220,6 +1281,7 @@ export default function App() {
   const [meetDraft, setMeetDraft] = useState("");
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [appointmentPickerOpen, setAppointmentPickerOpen] = useState(false);
   const [patientToOpen, setPatientToOpen] = useState<string | null>(null);
   const [patientOpenNonce, setPatientOpenNonce] = useState(0);
   const [toast, setToast] = useState("");
@@ -2026,46 +2088,59 @@ export default function App() {
               Paciente
               <input
                 value={form.patient}
-                onChange={(e) => setForm({ ...form, patient: e.target.value })}
+                onChange={(e) => {
+                  setForm({ ...form, patient: e.target.value });
+                  setAppointmentPickerOpen(true);
+                }}
+                onFocus={() => setAppointmentPickerOpen(true)}
                 placeholder="Nome do paciente"
                 autoFocus
               />
-              {appointmentPatientResults.length > 0 && (
-                <div className="patient-picker" role="listbox">
-                  {appointmentPatientResults.map((name) => {
-                    const profile = profiles.find((item) => item.name === name);
-                    return (
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={form.patient === name}
-                        key={name}
-                        onClick={() => setForm({ ...form, patient: name })}
-                      >
-                        <div className="avatar soft">{initials(name)}</div>
-                        <span>
-                          <strong>{name}</strong>
-                          <small>
-                            {profile?.phone ||
-                              profile?.email ||
-                              "Selecionar paciente"}
-                          </small>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+              {appointmentPickerOpen &&
+                appointmentPatientResults.length > 0 && (
+                  <div className="patient-picker" role="listbox">
+                    {appointmentPatientResults.map((name) => {
+                      const profile = profiles.find(
+                        (item) => item.name === name,
+                      );
+                      return (
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={form.patient === name}
+                          key={name}
+                          onClick={() => {
+                            setForm({ ...form, patient: name });
+                            setAppointmentPickerOpen(false);
+                          }}
+                        >
+                          <div className="avatar soft">{initials(name)}</div>
+                          <span>
+                            <strong>{name}</strong>
+                            <small>
+                              {profile?.phone ||
+                                profile?.email ||
+                                "Selecionar paciente"}
+                            </small>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              {!appointmentPickerOpen && patients.includes(form.patient) && (
+                <span className="selected-patient-note">
+                  <CheckCircle2 size={14} /> Paciente selecionado
+                </span>
               )}
             </label>
             <div className="form-row">
               <label>
                 Data
-                <input
-                  type="date"
-                  min={toIsoDate(new Date())}
+                <BrazilianDateField
                   value={form.date}
-                  onChange={(e) => setForm({ ...form, date: e.target.value })}
-                  required
+                  min={toIsoDate(new Date())}
+                  onChange={(date) => setForm({ ...form, date })}
                 />
               </label>
               <label>
@@ -2471,17 +2546,15 @@ export default function App() {
             <div className="form-row">
               <label>
                 Data
-                <input
-                  type="date"
-                  min={toIsoDate(new Date())}
+                <BrazilianDateField
                   value={rescheduleForm.date}
-                  onChange={(event) =>
+                  min={toIsoDate(new Date())}
+                  onChange={(date) =>
                     setRescheduleForm({
                       ...rescheduleForm,
-                      date: event.target.value,
+                      date,
                     })
                   }
-                  required
                 />
               </label>
               <label>
@@ -3149,14 +3222,10 @@ function Agenda({
             <div className="form-row">
               <label>
                 Data
-                <input
-                  type="date"
-                  min={toIsoDate(new Date())}
+                <BrazilianDateField
                   value={blockForm.date}
-                  onChange={(e) =>
-                    setBlockForm({ ...blockForm, date: e.target.value })
-                  }
-                  required
+                  min={toIsoDate(new Date())}
+                  onChange={(date) => setBlockForm({ ...blockForm, date })}
                 />
               </label>
               <label>

@@ -841,6 +841,49 @@ header {
 .patient-picker small {
   display: block;
 }
+.selected-patient-note {
+  margin-top: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #4f806f;
+  font-size: 11px;
+  font-weight: 600;
+}
+.brazilian-date-field {
+  position: relative;
+}
+.brazilian-date-field > input[aria-label="Data"] {
+  width: 100%;
+  padding-right: 44px;
+}
+.brazilian-date-field > button {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #5f756e;
+}
+.brazilian-date-field > button:hover {
+  background: var(--soft);
+}
+.native-date-picker {
+  position: absolute;
+  width: 1px !important;
+  height: 1px;
+  padding: 0 !important;
+  opacity: 0;
+  pointer-events: none;
+}
 .patient-picker small {
   margin-top: 2px;
   color: var(--muted);
