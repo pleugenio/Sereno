@@ -160,18 +160,18 @@ Média da simulação: **5,1/10**.
 
 O Sereno já é convincente para o consultório individual online com sessões padronizadas. Ele ainda não deve prometer atender igualmente clínicas, casais/famílias, avaliações ou agendas com durações variáveis.
 
-| Capacidade | Resultado atual |
-| --- | --- |
-| Psicólogo individual online | Atende bem |
-| Agenda semanal e quinzenal de 50 minutos | Atende bem |
-| Crianças e adolescentes | Atende parcialmente |
-| Financeiro flexível básico | Atende parcialmente |
-| Baixa familiaridade tecnológica | Atende parcialmente |
-| Durações diferentes | Não atende |
-| Casal, família ou grupo | Não atende |
-| Avaliação em múltiplas etapas | Não atende |
-| Clínica com equipe e salas | Não atende |
-| Sábado e fuso configurável | Inconsistente |
+| Capacidade                               | Resultado atual     |
+| ---------------------------------------- | ------------------- |
+| Psicólogo individual online              | Atende bem          |
+| Agenda semanal e quinzenal de 50 minutos | Atende bem          |
+| Crianças e adolescentes                  | Atende parcialmente |
+| Financeiro flexível básico               | Atende parcialmente |
+| Baixa familiaridade tecnológica          | Atende parcialmente |
+| Durações diferentes                      | Não atende          |
+| Casal, família ou grupo                  | Não atende          |
+| Avaliação em múltiplas etapas            | Não atende          |
+| Clínica com equipe e salas               | Não atende          |
+| Sábado e fuso configurável               | Inconsistente       |
 
 ## Prioridades recomendadas
 
@@ -212,3 +212,17 @@ Nesta fase, a promessa mais honesta e forte é:
 > **O Sereno organiza a rotina do psicólogo autônomo, do agendamento ao pagamento, com menos cliques e sem misturar gestão com conteúdo clínico.**
 
 Depois de resolver duração, recorrência, sábado e local presencial, o produto poderá ampliar com segurança para casais, famílias e pequenas equipes.
+
+## Evolução aplicada após a avaliação
+
+Os quatro pontos imediatos da fundação da agenda foram corrigidos:
+
+- Cada atendimento pode durar 30, 40, 45, 50, 60, 75, 80, 90 ou 120 minutos.
+- Conflitos consideram o intervalo completo; uma sessão das 09:00 às 10:20 impede outro atendimento às 10:00.
+- A agenda semanal passou a incluir sábado e respeita os dias configurados. Dias fora da disponibilidade aparecem bloqueados.
+- Ao iniciar um novo atendimento pelo botão, o sistema sugere a próxima data realmente disponível conforme a configuração profissional.
+- Recorrências semanais e quinzenais podem terminar por quantidade de sessões ou data final, limitadas a 104 ocorrências por segurança.
+- Atendimento presencial exige e armazena o local, que também aparece nos detalhes da sessão.
+- O horário inicial da agenda acompanha o período profissional configurado.
+
+Essas correções melhoram principalmente os perfis Renata, Bruno e Caio. Casal/família, avaliação em etapas e múltiplos profissionais continuam como evoluções separadas, pois exigem novos modelos de dados e, no último caso, infraestrutura segura no servidor.

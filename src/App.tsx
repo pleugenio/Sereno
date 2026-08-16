@@ -100,6 +100,8 @@ type Appointment = {
   time: string;
   status: Status;
   mode: "Online" | "Presencial";
+  duration?: number;
+  location?: string;
   paid: boolean;
   amount?: number;
   paymentStatus?: PaymentStatus;
@@ -292,7 +294,15 @@ const nav = [
   { id: "pacientes" as View, label: "Pacientes", icon: UsersRound },
   { id: "financeiro" as View, label: "Financeiro", icon: WalletCards },
 ];
-const weekdays = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
+const weekdays = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+const workDayNumbers: Record<string, number> = {
+  Seg: 1,
+  Ter: 2,
+  Qua: 3,
+  Qui: 4,
+  Sex: 5,
+  Sáb: 6,
+};
 const brazilianTimeOptions = Array.from({ length: 24 * 6 }, (_, index) => {
   const hours = String(Math.floor(index / 6)).padStart(2, "0");
   const minutes = String((index % 6) * 10).padStart(2, "0");
@@ -348,6 +358,14 @@ function nextBookableDate() {
   if (day === 0) return addCalendarDays(today, 1);
   return today;
 }
+function nextAvailableDate(workDays: string[], start = toIsoDate(new Date())) {
+  const allowedDays = workDays.map((day) => workDayNumbers[day]);
+  for (let offset = 0; offset < 14; offset += 1) {
+    const candidate = addCalendarDays(start, offset);
+    if (allowedDays.includes(dayFromIsoDate(candidate))) return candidate;
+  }
+  return nextBookableDate();
+}
 function dayFromIsoDate(value: string) {
   return fromIsoDate(value).getDay();
 }
@@ -365,16 +383,27 @@ function blockAppliesToDate(block: CalendarBlock, date: string) {
 function timeIsBlocked(block: CalendarBlock, time: string) {
   return block.allDay || (time >= block.time && time < block.endTime);
 }
-const times = [
-  "08:00",
-  "09:00",
-  "10:00",
-  "11:00",
-  "14:00",
-  "15:00",
-  "16:00",
-  "17:00",
-];
+function timeToMinutes(time: string) {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+function formatTimeAfter(time: string, duration: number) {
+  const total = timeToMinutes(time) + duration;
+  return `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+function periodsOverlap(
+  firstStart: string,
+  firstDuration: number,
+  secondStart: string,
+  secondDuration: number,
+) {
+  const first = timeToMinutes(firstStart);
+  const second = timeToMinutes(secondStart);
+  return first < second + secondDuration && second < first + firstDuration;
+}
+const hourlyTimeOptions = brazilianTimeOptions.filter((time) =>
+  time.endsWith(":00"),
+);
 
 function initials(name: string) {
   return name
@@ -1371,7 +1400,12 @@ export default function App() {
     date: nextBookableDate(),
     time: "08:00",
     mode: "Online" as "Online" | "Presencial",
+    duration: 50,
+    location: "",
     recurring: "Não repetir",
+    recurrenceEnd: "Quantidade" as "Quantidade" | "Data final",
+    occurrences: 12,
+    repeatUntil: addCalendarDays(nextBookableDate(), 77),
   });
   const [patientForm, setPatientForm] = useState({
     name: "",
@@ -1440,6 +1474,9 @@ export default function App() {
     (appointment) => appointment.status === "Aguardando",
   );
   const pending = pendingAppointments.length;
+  const availableStartTimes = hourlyTimeOptions.filter(
+    (time) => time >= settings.workStart && time < settings.workEnd,
+  );
 
   function save(next: Appointment[]) {
     setAppointments(next);
@@ -1461,8 +1498,13 @@ export default function App() {
     e.preventDefault();
     if (!form.patient.trim()) return;
     const selectedDay = fromIsoDate(form.date).getDay();
-    if (selectedDay === 0 || selectedDay === 6) {
-      notify("Escolha um dia útil para agendar o atendimento");
+    const allowedDays = settings.workDays.map((day) => workDayNumbers[day]);
+    if (!allowedDays.includes(selectedDay)) {
+      notify("Esse dia está fora da sua disponibilidade configurada");
+      return;
+    }
+    if (form.mode === "Presencial" && !form.location.trim()) {
+      notify("Informe o local do atendimento presencial");
       return;
     }
     const interval =
@@ -1471,11 +1513,21 @@ export default function App() {
         : form.recurring === "Quinzenal"
           ? 14
           : 0;
-    const requestedDates = interval
-      ? Array.from({ length: 12 }, (_, index) =>
-          addCalendarDays(form.date, index * interval),
-        )
-      : [form.date];
+    let requestedDates = [form.date];
+    if (interval && form.recurrenceEnd === "Quantidade") {
+      const occurrences = Math.min(104, Math.max(2, form.occurrences));
+      requestedDates = Array.from({ length: occurrences }, (_, index) =>
+        addCalendarDays(form.date, index * interval),
+      );
+    }
+    if (interval && form.recurrenceEnd === "Data final") {
+      requestedDates = [];
+      let date = form.date;
+      while (date <= form.repeatUntil && requestedDates.length < 104) {
+        requestedDates.push(date);
+        date = addCalendarDays(date, interval);
+      }
+    }
     const blocks: CalendarBlock[] = JSON.parse(
       localStorage.getItem("sereno-blocks") || "[]",
     );
@@ -1483,12 +1535,24 @@ export default function App() {
       const appointmentConflict = appointments.some(
         (appointment) =>
           appointmentIsoDate(appointment) === date &&
-          appointment.time === form.time &&
+          periodsOverlap(
+            appointment.time,
+            appointment.duration ?? 50,
+            form.time,
+            form.duration,
+          ) &&
           appointment.status !== "Cancelado",
       );
       const blockConflict = blocks.some(
         (block) =>
-          blockAppliesToDate(block, date) && timeIsBlocked(block, form.time),
+          blockAppliesToDate(block, date) &&
+          (block.allDay ||
+            periodsOverlap(
+              block.time,
+              timeToMinutes(block.endTime) - timeToMinutes(block.time),
+              form.time,
+              form.duration,
+            )),
       );
       return !appointmentConflict && !blockConflict;
     });
@@ -1506,6 +1570,8 @@ export default function App() {
         scheduledDate: date,
         time: form.time,
         mode: form.mode,
+        duration: form.duration,
+        location: form.mode === "Presencial" ? form.location.trim() : undefined,
         status: "Aguardando" as Status,
         paid: false,
       })),
@@ -1514,10 +1580,15 @@ export default function App() {
     setAppointmentPickerOpen(false);
     setForm({
       patient: "",
-      date: nextBookableDate(),
+      date: nextAvailableDate(settings.workDays),
       time: "08:00",
       mode: "Online",
+      duration: settings.sessionDuration,
+      location: "",
       recurring: "Não repetir",
+      recurrenceEnd: "Quantidade",
+      occurrences: 12,
+      repeatUntil: addCalendarDays(nextAvailableDate(settings.workDays), 77),
     });
     const skipped = requestedDates.length - availableDates.length;
     notify(
@@ -1530,13 +1601,19 @@ export default function App() {
     setModal(false);
     setAppointmentPickerOpen(false);
   }
-  function openNewAppointment(date = nextBookableDate(), time = "08:00") {
+  function openNewAppointment(date?: string, time = "08:00") {
+    const appointmentDate = date || nextAvailableDate(settings.workDays);
     setForm({
       patient: "",
-      date,
+      date: appointmentDate,
       time,
       mode: "Online",
+      duration: settings.sessionDuration,
+      location: "",
       recurring: "Não repetir",
+      recurrenceEnd: "Quantidade",
+      occurrences: 12,
+      repeatUntil: addCalendarDays(appointmentDate, 77),
     });
     setAppointmentPickerOpen(false);
     setModal(true);
@@ -1609,11 +1686,13 @@ export default function App() {
         {
           id: Date.now(),
           patient: closingSession.patient,
-          day: Math.min(5, Math.max(1, nextDate.getDay())),
+          day: nextDate.getDay(),
           scheduledDate: closingForm.nextAppointment.slice(0, 10),
           time: closingForm.nextAppointment.slice(11, 16),
           status: "Aguardando",
           mode: closingSession.mode,
+          duration: closingSession.duration ?? 50,
+          location: closingSession.location,
           paid: false,
           amount: closingForm.amount,
           paymentStatus: "Pendente",
@@ -1652,8 +1731,9 @@ export default function App() {
     event.preventDefault();
     if (!rescheduling) return;
     const selectedDay = new Date(`${rescheduleForm.date}T12:00:00`).getDay();
-    if (selectedDay === 0 || selectedDay === 6) {
-      notify("Escolha um dia útil para remarcar a sessão");
+    const allowedDays = settings.workDays.map((day) => workDayNumbers[day]);
+    if (!allowedDays.includes(selectedDay)) {
+      notify("Esse dia está fora da sua disponibilidade configurada");
       return;
     }
     const blocks: CalendarBlock[] = JSON.parse(
@@ -1663,13 +1743,24 @@ export default function App() {
       (appointment) =>
         appointment.id !== rescheduling.id &&
         appointmentIsoDate(appointment) === rescheduleForm.date &&
-        appointment.time === rescheduleForm.time &&
+        periodsOverlap(
+          appointment.time,
+          appointment.duration ?? 50,
+          rescheduleForm.time,
+          rescheduling.duration ?? 50,
+        ) &&
         appointment.status !== "Cancelado",
     );
     const isBlocked = blocks.some(
       (block) =>
         blockAppliesToDate(block, rescheduleForm.date) &&
-        timeIsBlocked(block, rescheduleForm.time),
+        (block.allDay ||
+          periodsOverlap(
+            block.time,
+            timeToMinutes(block.endTime) - timeToMinutes(block.time),
+            rescheduleForm.time,
+            rescheduling.duration ?? 50,
+          )),
     );
     if (hasConflict || isBlocked) {
       notify("Não é possível remarcar para um horário ocupado ou bloqueado");
@@ -2224,6 +2315,7 @@ export default function App() {
           {view === "agenda" && (
             <Agenda
               appointments={appointments}
+              settings={settings}
               openAt={openAt}
               setModal={(visible) =>
                 visible ? openNewAppointment() : closeAppointmentModal()
@@ -2285,7 +2377,7 @@ export default function App() {
               <div>
                 <span className="eyebrow">NOVO COMPROMISSO</span>
                 <h2>Agendar atendimento</h2>
-                <p>A sessão terá duração padrão de 50 minutos.</p>
+                <p>Escolha paciente, duração e recorrência da sessão.</p>
               </div>
               <button type="button" onClick={closeAppointmentModal}>
                 <X />
@@ -2355,7 +2447,7 @@ export default function App() {
                   value={form.time}
                   onChange={(e) => setForm({ ...form, time: e.target.value })}
                 >
-                  {times.map((t) => (
+                  {availableStartTimes.map((t) => (
                     <option key={t}>{t}</option>
                   ))}
                 </select>
@@ -2378,6 +2470,36 @@ export default function App() {
                 </select>
               </label>
               <label>
+                Duração
+                <select
+                  value={form.duration}
+                  onChange={(e) =>
+                    setForm({ ...form, duration: Number(e.target.value) })
+                  }
+                >
+                  {[30, 40, 45, 50, 60, 75, 80, 90, 120].map((duration) => (
+                    <option key={duration} value={duration}>
+                      {duration} minutos
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            {form.mode === "Presencial" && (
+              <label>
+                Local do atendimento
+                <input
+                  value={form.location}
+                  onChange={(e) =>
+                    setForm({ ...form, location: e.target.value })
+                  }
+                  placeholder="Ex.: Sala 2 · Clínica Centro"
+                  required
+                />
+              </label>
+            )}
+            <div className="form-row">
+              <label>
                 Recorrência
                 <select
                   value={form.recurring}
@@ -2390,23 +2512,69 @@ export default function App() {
                   <option>Quinzenal</option>
                 </select>
               </label>
+              {form.recurring !== "Não repetir" ? (
+                <label>
+                  Encerrar recorrência por
+                  <select
+                    value={form.recurrenceEnd}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        recurrenceEnd: e.target.value as
+                          "Quantidade" | "Data final",
+                      })
+                    }
+                  >
+                    <option>Quantidade</option>
+                    <option>Data final</option>
+                  </select>
+                </label>
+              ) : (
+                <div />
+              )}
             </div>
+            {form.recurring !== "Não repetir" && (
+              <div className="form-row recurrence-details">
+                {form.recurrenceEnd === "Quantidade" ? (
+                  <label>
+                    Número de sessões
+                    <input
+                      type="number"
+                      min="2"
+                      max="104"
+                      value={form.occurrences}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          occurrences: Number(e.target.value),
+                        })
+                      }
+                    />
+                  </label>
+                ) : (
+                  <label>
+                    Repetir até
+                    <BrazilianDateField
+                      value={form.repeatUntil}
+                      min={form.date}
+                      onChange={(repeatUntil) =>
+                        setForm({ ...form, repeatUntil })
+                      }
+                    />
+                  </label>
+                )}
+                <div className="setting-note">
+                  Conflitos serão ignorados e informados ao final.
+                </div>
+              </div>
+            )}
             <div className="duration-note">
               <Clock3 size={18} />
               <span>
                 <strong>
-                  {form.time} –{" "}
-                  {String(
-                    Number(form.time.slice(0, 2)) +
-                      (Number(form.time.slice(3)) + 50 >= 60 ? 1 : 0),
-                  ).padStart(2, "0")}
-                  :
-                  {String((Number(form.time.slice(3)) + 50) % 60).padStart(
-                    2,
-                    "0",
-                  )}
+                  {form.time} – {formatTimeAfter(form.time, form.duration)}
                 </strong>{" "}
-                · 50 minutos
+                · {form.duration} minutos
               </span>
             </div>
             <div className="modal-actions">
@@ -2584,7 +2752,7 @@ export default function App() {
                   {selected.scheduledDate
                     ? formatBrazilianDate(selected.scheduledDate)
                     : weekdays[selected.day - 1]}
-                  , às {selected.time} · 50 minutos
+                  , às {selected.time} · {selected.duration ?? 50} minutos
                 </p>
               </div>
               <button onClick={() => setSelected(null)}>
@@ -2611,6 +2779,12 @@ export default function App() {
                 <span>Valor</span>
                 <strong>{money(selected.amount ?? 180)}</strong>
               </div>
+              {selected.mode === "Presencial" && (
+                <div>
+                  <span>Local</span>
+                  <strong>{selected.location || "Não informado"}</strong>
+                </div>
+              )}
             </div>
             {selected.mode === "Online" && (
               <div className="meet-box">
@@ -2774,7 +2948,7 @@ export default function App() {
                     })
                   }
                 >
-                  {times.map((time) => (
+                  {availableStartTimes.map((time) => (
                     <option key={time}>{time}</option>
                   ))}
                 </select>
@@ -2981,12 +3155,14 @@ export default function App() {
 
 function Agenda({
   appointments,
+  settings,
   openAt,
   setModal,
   select,
   notify,
 }: {
   appointments: Appointment[];
+  settings: AppSettings;
   openAt: (date: string, time: string) => void;
   setModal: (v: boolean) => void;
   select: (a: Appointment) => void;
@@ -3036,7 +3212,10 @@ function Agenda({
   function createBlock(e: React.FormEvent) {
     e.preventDefault();
     const day = fromIsoDate(blockForm.date).getDay();
-    if (day === 0 || day === 6) return;
+    if (day === 0) {
+      notify("Domingo não está disponível nesta versão da agenda");
+      return;
+    }
     if (blockForm.endDate < blockForm.date) {
       notify("A data final deve ser igual ou posterior à data inicial");
       return;
@@ -3053,8 +3232,12 @@ function Agenda({
         blockAppliesToDate(candidate, appointmentIsoDate(appointment)) &&
         appointment.status !== "Cancelado" &&
         (blockForm.allDay ||
-          (appointment.time >= blockForm.time &&
-            appointment.time < blockForm.endTime)),
+          periodsOverlap(
+            appointment.time,
+            appointment.duration ?? 50,
+            blockForm.time,
+            timeToMinutes(blockForm.endTime) - timeToMinutes(blockForm.time),
+          )),
     );
     if (appointmentConflict) {
       notify("Já existe um atendimento nesse período");
@@ -3073,9 +3256,9 @@ function Agenda({
       localStorage.setItem("sereno-blocks", JSON.stringify(next));
     }
   }
-  const weekDates = [1, 2, 3, 4, 5].map((day) => weekDate(day, week));
+  const weekDates = [1, 2, 3, 4, 5, 6].map((day) => weekDate(day, week));
   const weekStart = fromIsoDate(weekDates[0]);
-  const weekEnd = fromIsoDate(weekDates[4]);
+  const weekEnd = fromIsoDate(weekDates[5]);
   const label = `${weekStart.getDate()} – ${weekEnd.getDate()} de ${monthNames[weekEnd.getMonth()]}, ${weekEnd.getFullYear()}`;
   const visibleAppointments = appointments.filter((appointment) =>
     weekDates.includes(appointmentIsoDate(appointment)),
@@ -3086,6 +3269,9 @@ function Agenda({
   const visiblePending = visibleAppointments.filter(
     (appointment) => appointment.status === "Aguardando",
   ).length;
+  const agendaTimes = hourlyTimeOptions.filter(
+    (time) => time >= settings.workStart && time < settings.workEnd,
+  );
   const monthReference = fromIsoDate(weekDates[0]);
   const monthStart = new Date(
     monthReference.getFullYear(),
@@ -3198,8 +3384,11 @@ function Agenda({
               ))}
             </div>
             <div className="day-timeline">
-              {times.map((time, timeIndex) => {
+              {agendaTimes.map((time, timeIndex) => {
                 const selectedDate = weekDates[selectedDay - 1];
+                const workingDay = settings.workDays.some(
+                  (day) => workDayNumbers[day] === selectedDay,
+                );
                 const a = appointments.find(
                   (x) =>
                     appointmentIsoDate(x) === selectedDate && x.time === time,
@@ -3213,7 +3402,7 @@ function Agenda({
                   blocking?.allDay && timeIndex > 0 ? undefined : blocking;
                 return (
                   <div
-                    className={`day-line ${blocking ? "unavailable" : ""}`}
+                    className={`day-line ${blocking || !workingDay ? "unavailable" : ""}`}
                     key={time}
                   >
                     <span>{time}</span>
@@ -3225,7 +3414,7 @@ function Agenda({
                         >
                           <strong>{a.patient}</strong>
                           <small>
-                            {a.mode} · {a.status} · 50 minutos
+                            {a.mode} · {a.status} · {a.duration ?? 50} minutos
                           </small>
                         </button>
                       ) : block ? (
@@ -3244,6 +3433,10 @@ function Agenda({
                       ) : blocking ? (
                         <span className="blocked-continuation">
                           Indisponível
+                        </span>
+                      ) : !workingDay ? (
+                        <span className="blocked-continuation">
+                          Fora da disponibilidade
                         </span>
                       ) : (
                         <button
@@ -3283,7 +3476,13 @@ function Agenda({
                   <button
                     key={date}
                     className={`month-day ${!inMonth ? "outside" : ""} ${date === toIsoDate(new Date()) ? "today-date" : ""}`}
-                    disabled={!inMonth || weekday === 0 || weekday === 6}
+                    disabled={
+                      !inMonth ||
+                      weekday === 0 ||
+                      !settings.workDays.some(
+                        (day) => workDayNumbers[day] === weekday,
+                      )
+                    }
                     onClick={() => {
                       const clicked = fromIsoDate(date);
                       const clickedMonday = new Date(clicked);
@@ -3328,12 +3527,15 @@ function Agenda({
                 <b>{fromIsoDate(weekDates[i]).getDate()}</b>
               </div>
             ))}
-            {times.flatMap((time) => [
+            {agendaTimes.flatMap((time) => [
               <div className="time" key={`t-${time}`}>
                 {time}
               </div>,
               ...weekdays.map((_, i) => {
                 const slotDate = weekDates[i];
+                const workingDay = settings.workDays.some(
+                  (day) => workDayNumbers[day] === i + 1,
+                );
                 const a = appointments.find(
                   (x) => appointmentIsoDate(x) === slotDate && x.time === time,
                 );
@@ -3342,12 +3544,16 @@ function Agenda({
                     blockAppliesToDate(b, slotDate) && timeIsBlocked(b, time),
                 );
                 const block =
-                  blocking?.allDay && time !== times[0] ? undefined : blocking;
+                  blocking?.allDay && time !== agendaTimes[0]
+                    ? undefined
+                    : blocking;
                 return (
                   <div
-                    className="slot"
+                    className={`slot ${!workingDay ? "outside-availability" : ""}`}
                     key={`${i}-${time}`}
-                    onClick={() => !a && !blocking && openAt(slotDate, time)}
+                    onClick={() =>
+                      workingDay && !a && !blocking && openAt(slotDate, time)
+                    }
                   >
                     {a ? (
                       <button
@@ -3358,16 +3564,7 @@ function Agenda({
                         }}
                       >
                         <span>
-                          {a.time}–
-                          {String(
-                            Number(a.time.slice(0, 2)) +
-                              (Number(a.time.slice(3)) + 50 >= 60 ? 1 : 0),
-                          ).padStart(2, "0")}
-                          :
-                          {String((Number(a.time.slice(3)) + 50) % 60).padStart(
-                            2,
-                            "0",
-                          )}
+                          {a.time}–{formatTimeAfter(a.time, a.duration ?? 50)}
                         </span>
                         <strong>{a.patient.split(" ")[0]}</strong>
                         <small>
@@ -3396,6 +3593,10 @@ function Agenda({
                       </button>
                     ) : blocking ? (
                       <span className="blocked-continuation">Indisponível</span>
+                    ) : !workingDay ? (
+                      <span className="blocked-continuation">
+                        Fora da agenda
+                      </span>
                     ) : (
                       <span className="add-slot">
                         <Plus size={15} />
@@ -3549,7 +3750,7 @@ function Agenda({
                       setBlockForm({ ...blockForm, time: e.target.value })
                     }
                   >
-                    {times.map((t) => (
+                    {agendaTimes.map((t) => (
                       <option key={t}>{t}</option>
                     ))}
                   </select>

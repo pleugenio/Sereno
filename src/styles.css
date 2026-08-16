@@ -514,7 +514,7 @@ header {
 }
 .week-grid {
   display: grid;
-  grid-template-columns: 64px repeat(5, 1fr);
+  grid-template-columns: 64px repeat(6, 1fr);
   min-width: 760px;
 }
 .corner,
@@ -559,6 +559,20 @@ header {
   border-bottom: 1px solid #edf0ed;
   padding: 4px;
   position: relative;
+}
+.slot.outside-availability {
+  background: repeating-linear-gradient(
+    -45deg,
+    #f6f8f7,
+    #f6f8f7 7px,
+    #f1f4f2 7px,
+    #f1f4f2 14px
+  );
+  cursor: default;
+}
+.slot.outside-availability .blocked-continuation {
+  color: #9ba6a2;
+  font-size: 9px;
 }
 .add-slot {
   opacity: 0;

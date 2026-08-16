@@ -362,6 +362,7 @@ test("oferece pacientes para escolha antes de digitar na busca", async ({
   expect(await initialOptions.count()).toBeLessThanOrEqual(10);
 
   await page.getByRole("button", { name: "Novo atendimento" }).first().click();
+  await page.getByPlaceholder("Nome do paciente").click();
   const picker = page.locator(".patient-picker");
   await expect(picker.getByRole("option").first()).toBeVisible();
   expect(await picker.getByRole("option").count()).toBeLessThanOrEqual(10);
@@ -443,6 +444,60 @@ test("impede conflitos e cria recorrência com datas reais", async ({
   await page.getByLabel("Paciente").fill("Conflito Teste E2E");
   await page.getByLabel("Data").fill("31/08/2026");
   await page.getByLabel("Horário").selectOption("09:00");
+  await page.getByRole("button", { name: /Agendar atendimento/ }).click();
+  await expect(
+    page.getByText("Este horário está ocupado ou bloqueado"),
+  ).toBeVisible();
+});
+
+test("agenda respeita sábado, duração, local e término da recorrência", async ({
+  page,
+}) => {
+  await login(page);
+  await page
+    .getByRole("button", { name: "Configurações", exact: true })
+    .click();
+  await page
+    .getByRole("main")
+    .getByRole("button", { name: "Agenda", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Sáb", exact: true }).click();
+  await page.getByRole("button", { name: /Salvar configurações/ }).click();
+
+  await page
+    .locator(".sidebar")
+    .getByRole("button", { name: "Agenda", exact: true })
+    .click();
+  await expect(page.getByText("Sábado", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: /Novo atendimento/ }).click();
+  await page.getByLabel("Paciente").fill("Sábado Presencial E2E");
+  await page.getByLabel("Data").fill("22/08/2026");
+  await page.getByLabel("Horário").selectOption("09:00");
+  await page.getByLabel("Modalidade").selectOption("Presencial");
+  await page.getByLabel("Duração").selectOption("80");
+  await page.getByLabel("Local do atendimento").fill("Sala 2 · Clínica Centro");
+  await page.getByLabel("Recorrência").selectOption("Quinzenal");
+  await page.getByLabel("Número de sessões").fill("3");
+  await page.getByRole("button", { name: /Agendar atendimento/ }).click();
+  await expect(page.getByText("3 atendimentos criados")).toBeVisible();
+
+  const created = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("sereno-appointments") || "[]").filter(
+      (appointment: { patient: string }) =>
+        appointment.patient === "Sábado Presencial E2E",
+    ),
+  );
+  expect(created).toHaveLength(3);
+  expect(created[0]).toMatchObject({
+    duration: 80,
+    location: "Sala 2 · Clínica Centro",
+    day: 6,
+  });
+
+  await page.getByRole("button", { name: /Novo atendimento/ }).click();
+  await page.getByLabel("Paciente").fill("Conflito por duração E2E");
+  await page.getByLabel("Data").fill("22/08/2026");
+  await page.getByLabel("Horário").selectOption("10:00");
   await page.getByRole("button", { name: /Agendar atendimento/ }).click();
   await expect(
     page.getByText("Este horário está ocupado ou bloqueado"),
