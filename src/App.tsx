@@ -105,7 +105,6 @@ type Appointment = {
   paymentMethod?: string;
   paymentDate?: string;
   meetUrl?: string;
-  documentationStatus?: "Pendente" | "Concluído" | "Não se aplica";
   receiptStatus?: "Pendente" | "Emitido" | "Não se aplica";
   nextAppointment?: string;
 };
@@ -1201,8 +1200,6 @@ export default function App() {
   const [modal, setModal] = useState(false);
   const [patientModal, setPatientModal] = useState(false);
   const [selected, setSelected] = useState<Appointment | null>(null);
-  const [documentationReview, setDocumentationReview] =
-    useState<Appointment | null>(null);
   const [sessionActionsOpen, setSessionActionsOpen] = useState(false);
   const [rescheduling, setRescheduling] = useState<Appointment | null>(null);
   const [rescheduleForm, setRescheduleForm] = useState({
@@ -1217,7 +1214,6 @@ export default function App() {
     paymentStatus: "Pendente" as PaymentStatus,
     paymentMethod: "Pix",
     amount: 180,
-    documentationDone: false,
     receiptDone: false,
     nextAppointment: "",
   });
@@ -1407,18 +1403,6 @@ export default function App() {
     setSelected(next.find((a) => a.id === id) || null);
     notify(message);
   }
-  function completeDocumentationReview() {
-    if (!documentationReview) return;
-    save(
-      appointments.map((appointment) =>
-        appointment.id === documentationReview.id
-          ? { ...appointment, documentationStatus: "Concluído" }
-          : appointment,
-      ),
-    );
-    setDocumentationReview(null);
-    notify("Registro documental marcado como concluído");
-  }
   function openClosingWorkflow(appointment: Appointment) {
     setClosingSession(appointment);
     setClosingForm({
@@ -1427,7 +1411,6 @@ export default function App() {
         appointment.paymentStatus ?? (appointment.paid ? "Pago" : "Pendente"),
       paymentMethod: appointment.paymentMethod || "Pix",
       amount: appointment.amount ?? 180,
-      documentationDone: appointment.documentationStatus === "Concluído",
       receiptDone: appointment.receiptStatus === "Emitido",
       nextAppointment: appointment.nextAppointment || "",
     });
@@ -1453,9 +1436,6 @@ export default function App() {
         paid || closingForm.paymentStatus === "Parcial"
           ? new Date().toISOString().slice(0, 10)
           : undefined,
-      documentationStatus: closingForm.documentationDone
-        ? "Concluído"
-        : "Pendente",
       receiptStatus:
         closingForm.paymentStatus === "Isento"
           ? "Não se aplica"
@@ -1991,7 +1971,6 @@ export default function App() {
               profiles={profiles}
               setModal={setModal}
               select={openAppointment}
-              reviewDocumentation={setDocumentationReview}
               go={setView}
             />
           )}
@@ -2308,61 +2287,6 @@ export default function App() {
               </button>
             </div>
           </form>
-        </div>
-      )}
-      {documentationReview && (
-        <div
-          className="modal-backdrop"
-          onMouseDown={() => setDocumentationReview(null)}
-        >
-          <div
-            className="modal small-modal documentation-review-modal"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <div className="modal-head">
-              <div>
-                <span className="eyebrow">PENDÊNCIA DOCUMENTAL</span>
-                <h2>{documentationReview.patient}</h2>
-                <p>
-                  Atendimento de{" "}
-                  {formatBrazilianDate(appointmentIsoDate(documentationReview))}
-                  , às {documentationReview.time}.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setDocumentationReview(null)}
-              >
-                <X />
-              </button>
-            </div>
-            <div className="documentation-review-note">
-              <CheckCircle2 />
-              <div>
-                <strong>Confirme apenas depois de atualizar o registro</strong>
-                <p>
-                  Nesta etapa, o Sereno controla somente a pendência. Nenhum
-                  conteúdo clínico é armazenado neste campo.
-                </p>
-              </div>
-            </div>
-            <div className="modal-actions">
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => setDocumentationReview(null)}
-              >
-                Agora não
-              </button>
-              <button
-                type="button"
-                className="primary"
-                onClick={completeDocumentationReview}
-              >
-                <Check size={17} /> Marcar como concluído
-              </button>
-            </div>
-          </div>
         </div>
       )}
       {selected && (
@@ -2731,25 +2655,6 @@ export default function App() {
               />
             </section>
             <section className="closing-checks">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={closingForm.documentationDone}
-                  onChange={(event) =>
-                    setClosingForm({
-                      ...closingForm,
-                      documentationDone: event.target.checked,
-                    })
-                  }
-                />
-                <span>
-                  <strong>Registro documental atualizado</strong>
-                  <small>
-                    O Sereno registra apenas a conclusão, sem conteúdo clínico
-                    nesta etapa.
-                  </small>
-                </span>
-              </label>
               <label>
                 <input
                   type="checkbox"
@@ -4319,14 +4224,12 @@ function Overview({
   profiles,
   setModal,
   select,
-  reviewDocumentation,
   go,
 }: {
   appointments: Appointment[];
   profiles: PatientProfile[];
   setModal: (v: boolean) => void;
   select: (a: Appointment) => void;
-  reviewDocumentation: (appointment: Appointment) => void;
   go: (v: View) => void;
 }) {
   const nowKey = `${toIsoDate(new Date())}T${new Date().toTimeString().slice(0, 5)}`;
@@ -4355,11 +4258,6 @@ function Overview({
       (a.paymentStatus ?? (a.paid ? "Pago" : "Pendente")) === "Pendente" &&
       a.status === "Realizado",
   );
-  const documentationPending = appointments.filter(
-    (appointment) =>
-      appointment.status === "Realizado" &&
-      appointment.documentationStatus !== "Concluído",
-  );
   const received = appointments
     .filter((a) => a.paid)
     .reduce((s, a) => s + (a.amount ?? 180), 0);
@@ -4376,8 +4274,7 @@ function Overview({
           <h1>{greeting}, Kamilla.</h1>
           <p>
             Sua rotina está quase em ordem. Há{" "}
-            {awaiting.length + overdue.length + documentationPending.length}{" "}
-            pontos para resolver.
+            {awaiting.length + overdue.length} pontos para resolver.
           </p>
         </div>
         <button className="primary" onClick={() => setModal(true)}>
@@ -4392,10 +4289,7 @@ function Overview({
               <Sparkles size={16} />
               Para cuidar agora
             </span>
-            <small>
-              {awaiting.length + overdue.length + documentationPending.length}{" "}
-              pendências
-            </small>
+            <small>{awaiting.length + overdue.length} pendências</small>
           </div>
           {awaiting.slice(0, 2).map((a) => (
             <button
@@ -4433,33 +4327,13 @@ function Overview({
               <ArrowRight />
             </button>
           ))}
-          {documentationPending.slice(0, 1).map((appointment) => (
-            <button
-              className="decision-row"
-              key={`documentation-${appointment.id}`}
-              onClick={() => reviewDocumentation(appointment)}
-            >
-              <span className="decision-icon mint">
-                <CheckCircle2 />
-              </span>
-              <span>
-                <strong>
-                  Concluir registro documental de {appointment.patient}
-                </strong>
-                <small>Atendimento realizado · conteúdo não exibido</small>
-              </span>
-              <ArrowRight />
-            </button>
-          ))}
-          {awaiting.length === 0 &&
-            overdue.length === 0 &&
-            documentationPending.length === 0 && (
-              <div className="all-clear">
-                <CheckCircle2 />
-                <strong>Tudo resolvido por aqui.</strong>
-                <span>Você pode focar nos atendimentos.</span>
-              </div>
-            )}
+          {awaiting.length === 0 && overdue.length === 0 && (
+            <div className="all-clear">
+              <CheckCircle2 />
+              <strong>Tudo resolvido por aqui.</strong>
+              <span>Você pode focar nos atendimentos.</span>
+            </div>
+          )}
           <button className="quiet-link" onClick={() => go("agenda")}>
             Ver agenda completa <ArrowRight size={15} />
           </button>

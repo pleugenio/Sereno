@@ -207,9 +207,7 @@ test("navegação principal funciona em tela móvel", async ({ page }) => {
   await expect(page.locator(".sidebar")).not.toHaveClass(/open/);
 });
 
-test("fecha atendimento e organiza financeiro, recibo e registro documental", async ({
-  page,
-}) => {
+test("fecha atendimento e organiza financeiro e recibo", async ({ page }) => {
   await login(page);
   await page
     .getByRole("button", { name: /Confirmar atendimento de Lucas Ribeiro/ })
@@ -220,7 +218,6 @@ test("fecha atendimento e organiza financeiro, recibo e registro documental", as
   await workflow.getByLabel("Situação").selectOption("Pago");
   await workflow.getByLabel("Forma de pagamento").selectOption("Pix");
   await workflow.getByLabel("Próxima sessão").fill("2026-08-24T14:00");
-  await workflow.getByText("Registro documental atualizado").click();
   await workflow.getByText("Recibo emitido no Receita Saúde").click();
   await workflow.getByRole("button", { name: /Concluir fechamento/ }).click();
   await expect(
@@ -244,28 +241,6 @@ test("fecha atendimento e organiza financeiro, recibo e registro documental", as
   ).toBeVisible();
   await page.getByRole("button", { name: "Marcar emitido" }).first().click();
   await expect(page.getByText("Recibo marcado como emitido")).toBeVisible();
-});
-
-test("conclui pendência documental sem abrir preparação da sessão", async ({
-  page,
-}) => {
-  await login(page);
-  await page
-    .getByRole("button", { name: /Concluir registro documental de Beatriz/ })
-    .click();
-  await expect(page.getByText("PENDÊNCIA DOCUMENTAL")).toBeVisible();
-  await expect(
-    page.locator(".modal .eyebrow", { hasText: "PREPARAR SESSÃO" }),
-  ).toHaveCount(0);
-  await page.getByRole("button", { name: "Marcar como concluído" }).click();
-  await expect(
-    page.getByText("Registro documental marcado como concluído"),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", {
-      name: /Concluir registro documental de Beatriz/,
-    }),
-  ).toHaveCount(0);
 });
 
 test("prepara sessão com remarcação e cancelamento organizados", async ({

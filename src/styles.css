@@ -896,30 +896,6 @@ header {
   gap: 8px;
   flex-wrap: wrap;
 }
-.documentation-review-note {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 15px;
-  margin-bottom: 18px;
-  border: 1px solid #dce8e2;
-  border-radius: 12px;
-  background: #f3f7f5;
-  color: #4e7167;
-}
-.documentation-review-note > svg {
-  flex: 0 0 auto;
-}
-.documentation-review-note strong,
-.documentation-review-note p {
-  display: block;
-}
-.documentation-review-note p {
-  margin: 5px 0 0;
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.5;
-}
 .more-actions-button {
   margin-left: auto;
 }
