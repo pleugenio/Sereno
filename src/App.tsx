@@ -115,6 +115,7 @@ type AppSettings = {
   crp: string;
   professionalEmail: string;
   professionalPhone: string;
+  avatarDataUrl: string;
   workStart: string;
   workEnd: string;
   sessionDuration: number;
@@ -133,6 +134,7 @@ const defaultSettings: AppSettings = {
   crp: "",
   professionalEmail: "",
   professionalPhone: "",
+  avatarDataUrl: "",
   workStart: "08:00",
   workEnd: "18:00",
   sessionDuration: 50,
@@ -457,6 +459,43 @@ function formatCalendarDate(value: string, weekday = false) {
     year: "numeric",
   }).format(fromIsoDate(value));
 }
+function resizeAvatar(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Não foi possível ler a imagem"));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => reject(new Error("Formato de imagem inválido"));
+      image.onload = () => {
+        const size = 256;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const context = canvas.getContext("2d");
+        if (!context)
+          return reject(new Error("Não foi possível tratar a imagem"));
+        const sourceSize = Math.min(image.width, image.height);
+        const sourceX = (image.width - sourceSize) / 2;
+        const sourceY = (image.height - sourceSize) / 2;
+        context.drawImage(
+          image,
+          sourceX,
+          sourceY,
+          sourceSize,
+          sourceSize,
+          0,
+          0,
+          size,
+          size,
+        );
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      image.src = String(reader.result);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function normalizeSearchText(value: string) {
   return value
     .normalize("NFD")
@@ -2068,12 +2107,22 @@ export default function App() {
                 )
               }
             >
-              <div className="avatar">{userRole === "admin" ? "PE" : "KC"}</div>
+              <div className="avatar profile-avatar">
+                {userRole === "professional" && settings.avatarDataUrl ? (
+                  <img src={settings.avatarDataUrl} alt="Foto do perfil" />
+                ) : (
+                  initials(
+                    userRole === "admin"
+                      ? "Paulo Eugenio"
+                      : settings.professionalName,
+                  )
+                )}
+              </div>
               <div>
                 <strong>
                   {userRole === "admin"
                     ? "Paulo Eugenio"
-                    : "Kamilla Campos Eugenio"}
+                    : settings.professionalName}
                 </strong>
                 <span>
                   {userRole === "admin" ? "Administrador" : "Psicóloga"}
@@ -6048,6 +6097,7 @@ function SettingsPage({
   exportData: () => void;
 }) {
   const [draft, setDraft] = useState({ ...defaultSettings, ...settings });
+  const [avatarError, setAvatarError] = useState("");
   const [tab, setTab] = useState<
     | "Perfil"
     | "Aparência"
@@ -6115,6 +6165,67 @@ function SettingsPage({
                 <div>
                   <h2>Perfil profissional</h2>
                   <p>Informações exibidas na sua conta e nas comunicações.</p>
+                </div>
+              </div>
+              <div className="avatar-editor">
+                <div className="avatar-preview">
+                  {draft.avatarDataUrl ? (
+                    <img
+                      src={draft.avatarDataUrl}
+                      alt="Prévia da foto do perfil"
+                    />
+                  ) : (
+                    initials(draft.professionalName)
+                  )}
+                </div>
+                <div>
+                  <strong>Foto do perfil</strong>
+                  <p>
+                    Use JPG, PNG ou WebP. A imagem será recortada em formato
+                    quadrado.
+                  </p>
+                  <div className="avatar-actions">
+                    <label className="secondary avatar-upload">
+                      Escolher imagem
+                      <input
+                        aria-label="Escolher foto do perfil"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        onChange={async (event) => {
+                          const file = event.target.files?.[0];
+                          if (!file) return;
+                          if (file.size > 5 * 1024 * 1024) {
+                            setAvatarError("Escolha uma imagem de até 5 MB");
+                            return;
+                          }
+                          try {
+                            const avatarDataUrl = await resizeAvatar(file);
+                            setDraft({ ...draft, avatarDataUrl });
+                            setAvatarError("");
+                          } catch {
+                            setAvatarError(
+                              "Não foi possível processar essa imagem",
+                            );
+                          }
+                          event.target.value = "";
+                        }}
+                      />
+                    </label>
+                    {draft.avatarDataUrl && (
+                      <button
+                        type="button"
+                        className="quiet-link"
+                        onClick={() =>
+                          setDraft({ ...draft, avatarDataUrl: "" })
+                        }
+                      >
+                        Remover foto
+                      </button>
+                    )}
+                  </div>
+                  {avatarError && (
+                    <small className="field-error">{avatarError}</small>
+                  )}
                 </div>
               </div>
               <div className="form-row">

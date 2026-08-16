@@ -105,6 +105,15 @@ test("fluxo profissional: agenda, paciente, busca, financeiro e configurações"
   await page
     .getByRole("button", { name: "Configurações", exact: true })
     .click();
+  await page.getByLabel("Escolher foto do perfil").setInputFiles({
+    name: "avatar.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+      "base64",
+    ),
+  });
+  await expect(page.getByAltText("Prévia da foto do perfil")).toBeVisible();
   await page.getByRole("button", { name: "Aparência" }).click();
   await page.getByText("Oceano", { exact: true }).click();
   await page
@@ -119,6 +128,7 @@ test("fluxo profissional: agenda, paciente, busca, financeiro e configurações"
   await page.getByLabel("Fuso horário").selectOption("America/Manaus");
   await page.getByRole("button", { name: /Salvar configurações/ }).click();
   await expect(page.getByText("Configurações salvas")).toBeVisible();
+  await expect(page.getByAltText("Foto do perfil")).toBeVisible();
   await expect
     .poll(() =>
       page.evaluate(() => {
