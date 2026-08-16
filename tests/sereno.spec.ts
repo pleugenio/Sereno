@@ -315,6 +315,40 @@ test("fecha atendimento e organiza financeiro e recibo", async ({ page }) => {
   await expect(page.getByText("Recibo marcado como emitido")).toBeVisible();
 });
 
+test("aceita atendimento social, gratuito e valor por sessão", async ({
+  page,
+}) => {
+  await login(page);
+  await page.getByRole("button", { name: "Pacientes", exact: true }).click();
+  await page.getByRole("button", { name: /Marina Alves/ }).click();
+  await page
+    .locator(".patient-manager-modal")
+    .getByRole("button", { name: "Financeiro", exact: true })
+    .click();
+  await page
+    .getByLabel("Modelo de cobrança")
+    .selectOption("Atendimento social");
+  await page.getByLabel("Valor por sessão").fill("90");
+  await page.getByRole("button", { name: /Salvar alterações/ }).click();
+  await expect(page.getByText("Social · R$ 90,00")).toBeVisible();
+
+  await page.getByRole("button", { name: /Marina Alves/ }).click();
+  await page
+    .locator(".patient-manager-modal")
+    .getByRole("button", { name: "Financeiro", exact: true })
+    .click();
+  await page.getByLabel("Modelo de cobrança").selectOption("Gratuito");
+  await page.getByRole("button", { name: /Salvar alterações/ }).click();
+  await expect(page.getByText("Sem cobrança")).toBeVisible();
+
+  const profile = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("sereno-profiles") || "[]").find(
+      (item: { name: string }) => item.name === "Marina Alves",
+    ),
+  );
+  expect(profile).toMatchObject({ billingType: "Gratuito", value: 0 });
+});
+
 test("prepara sessão com remarcação e cancelamento organizados", async ({
   page,
 }) => {

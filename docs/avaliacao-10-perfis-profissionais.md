@@ -224,5 +224,6 @@ Os quatro pontos imediatos da fundação da agenda foram corrigidos:
 - Recorrências semanais e quinzenais podem terminar por quantidade de sessões ou data final, limitadas a 104 ocorrências por segurança.
 - Atendimento presencial exige e armazena o local, que também aparece nos detalhes da sessão.
 - O horário inicial da agenda acompanha o período profissional configurado.
+- O acordo financeiro passou a distinguir valor padrão, valor variável, atendimento social e gratuito. O valor continua editável em cada sessão e pacientes gratuitos entram como isentos.
 
-Essas correções melhoram principalmente os perfis Renata, Bruno e Caio. Casal/família, avaliação em etapas e múltiplos profissionais continuam como evoluções separadas, pois exigem novos modelos de dados e, no último caso, infraestrutura segura no servidor.
+Essas correções melhoram principalmente os perfis Renata, Bruno, Lúcia e Caio. Casal/família, avaliação em etapas e múltiplos profissionais continuam como evoluções separadas, pois exigem novos modelos de dados e, no último caso, infraestrutura segura no servidor.

@@ -66,6 +66,8 @@ type CalendarBlock = {
 type Status = "Confirmado" | "Aguardando" | "Realizado" | "Cancelado" | "Falta";
 type PaymentStatus = "Pendente" | "Pago" | "Parcial" | "Isento" | "Cancelado";
 type Agreement = "Por sessão" | "Semanal" | "Quinzenal" | "Mensal" | "Pacote";
+type BillingType =
+  "Valor padrão" | "Valor variável" | "Atendimento social" | "Gratuito";
 type PatientProfile = {
   name: string;
   cpf?: string;
@@ -73,6 +75,7 @@ type PatientProfile = {
   email: string;
   phone: string;
   value: number;
+  billingType?: BillingType;
   agreement: Agreement;
   dueDay: number;
   status: "Ativo" | "Pausado" | "Encerrado";
@@ -414,6 +417,14 @@ function initials(name: string) {
 }
 function money(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+function patientValueLabel(profile?: PatientProfile) {
+  if (profile?.billingType === "Gratuito") return "Sem cobrança";
+  if (profile?.billingType === "Valor variável") return "Definido por sessão";
+  if (profile?.billingType === "Atendimento social") {
+    return `Social · ${money(profile.value)}`;
+  }
+  return money(profile?.value ?? 180);
 }
 function formatCpf(value: string) {
   return value
@@ -1634,13 +1645,21 @@ export default function App() {
     notify(message);
   }
   function openClosingWorkflow(appointment: Appointment) {
+    const financialProfile = profiles.find(
+      (profile) => profile.name === appointment.patient,
+    );
+    const isFree = financialProfile?.billingType === "Gratuito";
     setClosingSession(appointment);
     setClosingForm({
       outcome: appointment.status === "Cancelado" ? "Cancelado" : "Realizado",
-      paymentStatus:
-        appointment.paymentStatus ?? (appointment.paid ? "Pago" : "Pendente"),
+      paymentStatus: isFree
+        ? "Isento"
+        : (appointment.paymentStatus ??
+          (appointment.paid ? "Pago" : "Pendente")),
       paymentMethod: appointment.paymentMethod || "Pix",
-      amount: appointment.amount ?? 180,
+      amount: isFree
+        ? 0
+        : (appointment.amount ?? financialProfile?.value ?? 180),
       receiptDone: appointment.receiptStatus === "Emitido",
       nextAppointment: appointment.nextAppointment || "",
     });
@@ -5190,7 +5209,7 @@ function Patients({
                 </div>
               </div>
               <span>{p?.agreement || "Por sessão"}</span>
-              <strong>{money(p?.value ?? 180)}</strong>
+              <strong>{patientValueLabel(p)}</strong>
               <span className="status-dot">
                 <i></i>
                 {p?.status || "Ativo"}
@@ -5238,7 +5257,7 @@ function Patients({
               </div>
               <div>
                 <small>VALOR</small>
-                <strong>{money(editing.value)}</strong>
+                <strong>{patientValueLabel(editing)}</strong>
               </div>
               <div>
                 <small>SITUAÇÃO</small>
@@ -5605,6 +5624,25 @@ function Patients({
               {patientTab === "Financeiro" && (
                 <div className="agreement-box">
                   <span className="eyebrow">ACORDO FINANCEIRO</span>
+                  <label>
+                    Modelo de cobrança
+                    <select
+                      value={editing.billingType || "Valor padrão"}
+                      onChange={(e) => {
+                        const billingType = e.target.value as BillingType;
+                        setEditing({
+                          ...editing,
+                          billingType,
+                          value: billingType === "Gratuito" ? 0 : editing.value,
+                        });
+                      }}
+                    >
+                      <option>Valor padrão</option>
+                      <option>Valor variável</option>
+                      <option>Atendimento social</option>
+                      <option>Gratuito</option>
+                    </select>
+                  </label>
                   <div className="form-row">
                     <label>
                       Forma do acordo
@@ -5625,11 +5663,14 @@ function Patients({
                       </select>
                     </label>
                     <label>
-                      Valor por sessão
+                      {editing.billingType === "Valor variável"
+                        ? "Valor de referência"
+                        : "Valor por sessão"}
                       <input
                         type="number"
                         min="0"
                         value={editing.value}
+                        disabled={editing.billingType === "Gratuito"}
                         onChange={(e) =>
                           setEditing({
                             ...editing,
@@ -5861,10 +5902,16 @@ function Finance({
     );
   }
   function openPayment(a: Appointment) {
+    const financialProfile = profiles.find(
+      (profile) => profile.name === a.patient,
+    );
+    const isFree = financialProfile?.billingType === "Gratuito";
     setEditing(a);
     setPayment({
-      amount: a.amount ?? 180,
-      status: a.paymentStatus ?? (a.paid ? "Pago" : "Pendente"),
+      amount: isFree ? 0 : (a.amount ?? financialProfile?.value ?? 180),
+      status: isFree
+        ? "Isento"
+        : (a.paymentStatus ?? (a.paid ? "Pago" : "Pendente")),
       method: a.paymentMethod || "Pix",
       date: a.paymentDate || new Date().toISOString().slice(0, 10),
     });
@@ -6184,6 +6231,26 @@ function Finance({
             </div>
             <div className="agreement-box">
               <span className="eyebrow">ACORDO FINANCEIRO</span>
+              <label>
+                Modelo de cobrança
+                <select
+                  value={patientEditing.billingType || "Valor padrão"}
+                  onChange={(e) => {
+                    const billingType = e.target.value as BillingType;
+                    setPatientEditing({
+                      ...patientEditing,
+                      billingType,
+                      value:
+                        billingType === "Gratuito" ? 0 : patientEditing.value,
+                    });
+                  }}
+                >
+                  <option>Valor padrão</option>
+                  <option>Valor variável</option>
+                  <option>Atendimento social</option>
+                  <option>Gratuito</option>
+                </select>
+              </label>
               <div className="form-row">
                 <label>
                   Forma do acordo
@@ -6204,11 +6271,14 @@ function Finance({
                   </select>
                 </label>
                 <label>
-                  Valor por sessão
+                  {patientEditing.billingType === "Valor variável"
+                    ? "Valor de referência"
+                    : "Valor por sessão"}
                   <input
                     type="number"
                     min="0"
                     value={patientEditing.value}
+                    disabled={patientEditing.billingType === "Gratuito"}
                     onChange={(e) =>
                       setPatientEditing({
                         ...patientEditing,
