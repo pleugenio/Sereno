@@ -618,9 +618,11 @@ test("organiza lista de espera e remove paciente depois do agendamento", async (
   page,
 }) => {
   await login(page);
-  await page
-    .getByRole("button", { name: "Lista de espera", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Agenda", exact: true }).click();
+  await expect(
+    page.locator(".sidebar").getByRole("button", { name: "Lista de espera" }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Lista de espera (0)" }).click();
   await expect(
     page.getByRole("heading", { name: "Lista de espera" }),
   ).toBeVisible();

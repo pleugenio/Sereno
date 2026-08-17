@@ -48,7 +48,6 @@ type View =
   | "inicio"
   | "agenda"
   | "pacientes"
-  | "lista-espera"
   | "financeiro"
   | "configuracoes"
   | "administracao";
@@ -320,11 +319,6 @@ const nav = [
   { id: "inicio" as View, label: "Visão geral", icon: LayoutDashboard },
   { id: "agenda" as View, label: "Agenda", icon: CalendarDays },
   { id: "pacientes" as View, label: "Pacientes", icon: UsersRound },
-  {
-    id: "lista-espera" as View,
-    label: "Lista de espera",
-    icon: ClipboardList,
-  },
   { id: "financeiro" as View, label: "Financeiro", icon: WalletCards },
 ];
 const weekdays = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
@@ -1424,6 +1418,7 @@ export default function App() {
   const [appointmentPickerOpen, setAppointmentPickerOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
   const [patientToOpen, setPatientToOpen] = useState<string | null>(null);
   const [patientOpenNonce, setPatientOpenNonce] = useState(0);
   const [toast, setToast] = useState("");
@@ -2546,6 +2541,8 @@ export default function App() {
             <Agenda
               appointments={appointments}
               settings={settings}
+              waitlistCount={waitlist.length}
+              openWaitlist={() => setWaitlistOpen(true)}
               openAt={openAt}
               setModal={(visible) =>
                 visible ? openNewAppointment() : closeAppointmentModal()
@@ -2577,17 +2574,6 @@ export default function App() {
               notify={notify}
             />
           )}
-          {view === "lista-espera" && (
-            <Waitlist
-              entries={waitlist}
-              patients={patients}
-              profiles={profiles}
-              settings={settings}
-              save={saveWaitlist}
-              schedule={scheduleFromWaitlist}
-              notify={notify}
-            />
-          )}
           {view === "financeiro" && (
             <Finance
               appointments={appointments}
@@ -2607,6 +2593,31 @@ export default function App() {
           {view === "administracao" && <AdminArea notify={notify} />}
         </div>
       </main>
+      {waitlistOpen && (
+        <div
+          className="modal-backdrop"
+          onMouseDown={() => setWaitlistOpen(false)}
+        >
+          <div
+            className="modal waitlist-panel"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <Waitlist
+              entries={waitlist}
+              patients={patients}
+              profiles={profiles}
+              settings={settings}
+              save={saveWaitlist}
+              schedule={(entry) => {
+                setWaitlistOpen(false);
+                scheduleFromWaitlist(entry);
+              }}
+              notify={notify}
+              close={() => setWaitlistOpen(false)}
+            />
+          </div>
+        </div>
+      )}
       {modal && (
         <div className="modal-backdrop" onMouseDown={closeAppointmentModal}>
           <form
@@ -3405,6 +3416,8 @@ export default function App() {
 function Agenda({
   appointments,
   settings,
+  waitlistCount,
+  openWaitlist,
   openAt,
   setModal,
   select,
@@ -3412,6 +3425,8 @@ function Agenda({
 }: {
   appointments: Appointment[];
   settings: AppSettings;
+  waitlistCount: number;
+  openWaitlist: () => void;
   openAt: (date: string, time: string) => void;
   setModal: (v: boolean) => void;
   select: (a: Appointment) => void;
@@ -3547,6 +3562,10 @@ function Agenda({
           <p>Organize seus atendimentos com tranquilidade.</p>
         </div>
         <div className="page-actions">
+          <button className="secondary" onClick={openWaitlist}>
+            <ClipboardList size={18} />
+            Lista de espera ({waitlistCount})
+          </button>
           <button className="secondary" onClick={() => setBlockModal(true)}>
             <Clock3 size={18} />
             Bloquear horário
@@ -6685,6 +6704,7 @@ function Waitlist({
   save,
   schedule,
   notify,
+  close,
 }: {
   entries: WaitlistEntry[];
   patients: string[];
@@ -6693,6 +6713,7 @@ function Waitlist({
   save: (entries: WaitlistEntry[]) => void;
   schedule: (entry: WaitlistEntry) => void;
   notify: (message: string) => void;
+  close: () => void;
 }) {
   const emptyDraft = {
     patient: "",
@@ -6766,7 +6787,7 @@ function Waitlist({
   }
   return (
     <>
-      <section className="page-title serene-title">
+      <div className="modal-head waitlist-panel-head">
         <div>
           <span className="eyebrow">OPORTUNIDADES DE ENCAIXE</span>
           <h1>Lista de espera</h1>
@@ -6775,10 +6796,19 @@ function Waitlist({
             memória.
           </p>
         </div>
-        <button className="primary" onClick={() => setModalOpen(true)}>
-          <Plus size={18} /> Adicionar paciente
-        </button>
-      </section>
+        <div className="waitlist-head-actions">
+          <button className="primary" onClick={() => setModalOpen(true)}>
+            <Plus size={18} /> Adicionar paciente
+          </button>
+          <button
+            type="button"
+            aria-label="Fechar lista de espera"
+            onClick={close}
+          >
+            <X />
+          </button>
+        </div>
+      </div>
       <section className="waitlist-card">
         <div className="section-label">
           <span>
