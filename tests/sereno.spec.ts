@@ -589,84 +589,29 @@ test("exporta backup administrativo sem prender os dados", async ({ page }) => {
   ).toBeVisible();
 });
 
-test("prepara lembrete assistido no WhatsApp e registra o envio", async ({
+test("mantém WhatsApp contextual sem criar uma central no menu", async ({
   page,
 }) => {
-  await page.evaluate(() => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const date = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
-    localStorage.setItem(
-      "sereno-appointments",
-      JSON.stringify([
-        {
-          id: 901,
-          patient: "Ana WhatsApp E2E",
-          day: tomorrow.getDay(),
-          scheduledDate: date,
-          time: "09:00",
-          status: "Aguardando",
-          mode: "Online",
-          paid: false,
-        },
-      ]),
-    );
-    localStorage.setItem(
-      "sereno-profiles",
-      JSON.stringify([
-        {
-          name: "Ana WhatsApp E2E",
-          email: "ana@example.com",
-          phone: "(11) 99999-8888",
-          value: 180,
-          agreement: "Por sessão",
-          dueDay: 10,
-          status: "Ativo",
-          notes: "",
-          meetUrl: "https://meet.google.com/abc-defg-hij",
-        },
-      ]),
-    );
-    localStorage.setItem(
-      "sereno-settings",
-      JSON.stringify({ whatsappReminderHours: 48 }),
-    );
-  });
   await login(page);
-  await page.getByRole("button", { name: "WhatsApp", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Central de WhatsApp" }),
+    page.getByRole("button", { name: "WhatsApp", exact: true }),
+  ).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Configurações", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Comunicações" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Comunicações" }),
   ).toBeVisible();
-  await expect(page.getByText("Ana WhatsApp E2E")).toBeVisible();
-  await page.getByRole("button", { name: "Confirmar horário" }).click();
-  await expect(page.getByLabel("Mensagem")).toHaveValue(
-    /Kamilla Campos Eugenio/,
+  await expect(page.getByLabel("Confirmação de horário")).toHaveValue(
+    /\{profissional\}/,
   );
-  await page.evaluate(() => {
-    (window as typeof window & { openedWhatsAppUrl?: string }).open = (url) => {
-      (
-        window as typeof window & { openedWhatsAppUrl?: string }
-      ).openedWhatsAppUrl = String(url);
-      return null;
-    };
-  });
-  await page.getByRole("button", { name: "Abrir WhatsApp" }).click();
-  const openedUrl = await page.evaluate(
-    () =>
-      (window as typeof window & { openedWhatsAppUrl?: string })
-        .openedWhatsAppUrl,
+  await expect(page.getByLabel("Envio do link da sala")).toHaveValue(
+    /\{link\}/,
   );
-  expect(openedUrl).toContain("wa.me/5511999998888");
-  expect(decodeURIComponent(openedUrl || "")).toContain(
-    "Kamilla Campos Eugenio",
+  await expect(page.getByLabel("Lembrete de pagamento")).toHaveValue(
+    /\{valor\}/,
   );
-  await page.getByRole("button", { name: "Cancelar" }).click();
-  await page.getByRole("button", { name: "Marcar como enviado" }).click();
-  await expect(page.getByText("Lembrete marcado como enviado")).toBeVisible();
-  const stored = await page.evaluate(() =>
-    JSON.parse(localStorage.getItem("sereno-appointments") || "[]"),
-  );
-  expect(stored[0].whatsappSentAt).toBeTruthy();
 });
 
 test("organiza lista de espera e remove paciente depois do agendamento", async ({

@@ -5638,16 +5638,6 @@ header {
     min-width: 700px;
   }
 }
-.whatsapp-free-badge {
-  align-self: center;
-  border-radius: 999px;
-  background: #e8f7ee;
-  color: #267149;
-  font-size: 0.82rem;
-  font-weight: 700;
-  padding: 0.55rem 0.85rem;
-}
-
 .waitlist-card {
   background: var(--surface, #fff);
   border: 1px solid var(--border, #e5e7e1);
@@ -5748,101 +5738,5 @@ header {
 
   .waitlist-actions {
     display: grid;
-  }
-}
-
-.whatsapp-center-card {
-  background: var(--surface, #fff);
-  border: 1px solid var(--border, #e5e7e1);
-  border-radius: 22px;
-  padding: 1.25rem;
-}
-
-.whatsapp-reminder-list {
-  display: grid;
-  gap: 0.7rem;
-  margin-top: 1rem;
-}
-
-.whatsapp-reminder-list article {
-  align-items: center;
-  border: 1px solid var(--border, #e5e7e1);
-  border-radius: 16px;
-  display: grid;
-  gap: 0.8rem;
-  grid-template-columns: auto minmax(180px, 1fr) auto minmax(220px, auto);
-  padding: 0.9rem;
-}
-
-.whatsapp-reminder-info,
-.whatsapp-reminder-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.whatsapp-reminder-info span,
-.whatsapp-reminder-info small {
-  color: var(--muted, #6d716c);
-}
-
-.whatsapp-reminder-status span {
-  background: #f5f4ef;
-  border-radius: 999px;
-  color: #74766f;
-  display: inline-flex;
-  font-size: 0.76rem;
-  font-weight: 700;
-  padding: 0.35rem 0.55rem;
-}
-
-.whatsapp-reminder-status .sent {
-  align-items: center;
-  background: #e8f7ee;
-  color: #267149;
-  gap: 0.25rem;
-}
-
-.whatsapp-reminder-actions {
-  align-items: stretch;
-}
-
-.whatsapp-reminder-actions button {
-  justify-content: center;
-  white-space: nowrap;
-}
-
-.whatsapp-composer label {
-  display: grid;
-  gap: 0.45rem;
-  margin-top: 1rem;
-}
-
-.whatsapp-composer textarea {
-  line-height: 1.55;
-  min-height: 150px;
-  resize: vertical;
-}
-
-@media (max-width: 900px) {
-  .whatsapp-reminder-list article {
-    grid-template-columns: auto 1fr;
-  }
-
-  .whatsapp-reminder-status,
-  .whatsapp-reminder-actions {
-    grid-column: 2;
-  }
-}
-
-@media (max-width: 560px) {
-  .whatsapp-reminder-list article {
-    grid-template-columns: 1fr;
-  }
-
-  .whatsapp-reminder-list .avatar,
-  .whatsapp-reminder-status,
-  .whatsapp-reminder-actions {
-    grid-column: 1;
   }
 }
