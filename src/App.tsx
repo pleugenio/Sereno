@@ -47,6 +47,7 @@ type View =
   | "inicio"
   | "agenda"
   | "pacientes"
+  | "whatsapp"
   | "financeiro"
   | "configuracoes"
   | "administracao";
@@ -114,6 +115,7 @@ type Appointment = {
   meetUrl?: string;
   receiptStatus?: "Pendente" | "Emitido" | "Não se aplica";
   nextAppointment?: string;
+  whatsappSentAt?: string;
 };
 type AppSettings = {
   theme: "sereno" | "oceano" | "lavanda" | "terracota";
@@ -134,6 +136,10 @@ type AppSettings = {
   timezone: string;
   videoProvider: "Google Meet" | "Microsoft Teams";
   simpleMode: boolean;
+  whatsappReminderHours: number;
+  whatsappConfirmationTemplate: string;
+  whatsappMeetTemplate: string;
+  whatsappPaymentTemplate: string;
 };
 const defaultSettings: AppSettings = {
   theme: "sereno",
@@ -154,6 +160,13 @@ const defaultSettings: AppSettings = {
   timezone: "America/Sao_Paulo",
   videoProvider: "Google Meet",
   simpleMode: false,
+  whatsappReminderHours: 24,
+  whatsappConfirmationTemplate:
+    "Olá, {primeiro_nome}. Este é um lembrete do Sereno: você possui um horário reservado com {profissional} em {data}, às {hora}. Poderia confirmar o recebimento?",
+  whatsappMeetTemplate:
+    "Olá, {primeiro_nome}. Segue o link do seu horário com {profissional}, às {hora}: {link}",
+  whatsappPaymentTemplate:
+    "Olá, {primeiro_nome}. Passando para organizar o pagamento no valor de {valor}. Se já tiver realizado, pode desconsiderar. Obrigada!",
 };
 const presetAvatars = [
   { name: "Escuta acolhedora", src: "/avatars/escuta-acolhedora.webp" },
@@ -298,6 +311,7 @@ const nav = [
   { id: "inicio" as View, label: "Visão geral", icon: LayoutDashboard },
   { id: "agenda" as View, label: "Agenda", icon: CalendarDays },
   { id: "pacientes" as View, label: "Pacientes", icon: UsersRound },
+  { id: "whatsapp" as View, label: "WhatsApp", icon: MessageCircle },
   { id: "financeiro" as View, label: "Financeiro", icon: WalletCards },
 ];
 const weekdays = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
@@ -2479,6 +2493,15 @@ export default function App() {
               deletePatient={deletePatient}
               openPatientName={patientToOpen}
               newPatient={() => setPatientModal(true)}
+              notify={notify}
+            />
+          )}
+          {view === "whatsapp" && (
+            <WhatsAppCenter
+              appointments={appointments}
+              profiles={profiles}
+              settings={settings}
+              update={updateAppointment}
               notify={notify}
             />
           )}
@@ -6563,6 +6586,271 @@ function Finance({
   );
 }
 
+type WhatsAppMessageKind = "Confirmação" | "Link da sala" | "Pagamento";
+
+function WhatsAppCenter({
+  appointments,
+  profiles,
+  settings,
+  update,
+  notify,
+}: {
+  appointments: Appointment[];
+  profiles: PatientProfile[];
+  settings: AppSettings;
+  update: (id: number, changes: Partial<Appointment>, message: string) => void;
+  notify: (message: string) => void;
+}) {
+  const [composer, setComposer] = useState<{
+    appointment: Appointment;
+    kind: WhatsAppMessageKind;
+    message: string;
+  } | null>(null);
+  const now = new Date().getTime();
+  const limit = now + settings.whatsappReminderHours * 60 * 60 * 1000;
+  const relevant = appointments
+    .filter((appointment) => {
+      if (appointment.status === "Cancelado") return false;
+      const timestamp = new Date(
+        `${appointmentIsoDate(appointment)}T${appointment.time}:00`,
+      ).getTime();
+      const upcoming = timestamp >= now && timestamp <= limit;
+      const paymentPending =
+        appointment.status === "Realizado" &&
+        (appointment.paymentStatus ??
+          (appointment.paid ? "Pago" : "Pendente")) === "Pendente";
+      return upcoming || paymentPending;
+    })
+    .sort((a, b) =>
+      `${appointmentIsoDate(a)}T${a.time}`.localeCompare(
+        `${appointmentIsoDate(b)}T${b.time}`,
+      ),
+    );
+
+  function profileFor(appointment: Appointment) {
+    return profiles.find((profile) => profile.name === appointment.patient);
+  }
+  function phoneFor(appointment: Appointment) {
+    const profile = profileFor(appointment);
+    const raw =
+      profile?.reminderRecipient === "Responsável"
+        ? profile.guardianPhone
+        : profile?.phone;
+    const digits = raw?.replace(/\D/g, "") || "";
+    return digits && !digits.startsWith("55") ? `55${digits}` : digits;
+  }
+  function renderTemplate(appointment: Appointment, kind: WhatsAppMessageKind) {
+    const profile = profileFor(appointment);
+    const template =
+      kind === "Confirmação"
+        ? settings.whatsappConfirmationTemplate
+        : kind === "Link da sala"
+          ? settings.whatsappMeetTemplate
+          : settings.whatsappPaymentTemplate;
+    return template
+      .replaceAll("{primeiro_nome}", appointment.patient.split(" ")[0])
+      .replaceAll("{profissional}", settings.professionalName)
+      .replaceAll(
+        "{data}",
+        formatBrazilianDate(appointmentIsoDate(appointment)),
+      )
+      .replaceAll("{hora}", appointment.time)
+      .replaceAll(
+        "{link}",
+        profile?.meetUrl || appointment.meetUrl || "[link não cadastrado]",
+      )
+      .replaceAll(
+        "{valor}",
+        money(appointment.amount ?? profile?.value ?? 180),
+      );
+  }
+  function openComposer(appointment: Appointment, kind: WhatsAppMessageKind) {
+    if (!phoneFor(appointment)) {
+      notify("Cadastre o telefone do paciente ou responsável primeiro");
+      return;
+    }
+    if (
+      kind === "Link da sala" &&
+      !patientMeetFromProfiles(appointment, profiles)
+    ) {
+      notify("Cadastre o link da sala deste paciente primeiro");
+      return;
+    }
+    setComposer({
+      appointment,
+      kind,
+      message: renderTemplate(appointment, kind),
+    });
+  }
+  function openWhatsApp() {
+    if (!composer) return;
+    window.open(
+      `https://wa.me/${phoneFor(composer.appointment)}?text=${encodeURIComponent(composer.message)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  }
+  return (
+    <>
+      <section className="page-title serene-title">
+        <div>
+          <span className="eyebrow">COMUNICAÇÃO ASSISTIDA</span>
+          <h1>Central de WhatsApp</h1>
+          <p>
+            Revise cada mensagem antes de abrir o WhatsApp. Nada é enviado
+            automaticamente.
+          </p>
+        </div>
+        <span className="whatsapp-free-badge">Gratuito · envio manual</span>
+      </section>
+      <section className="whatsapp-center-card">
+        <div className="section-label">
+          <span>
+            <MessageCircle size={17} /> Próximas ações
+          </span>
+          <small>janela de {settings.whatsappReminderHours} horas</small>
+        </div>
+        {relevant.length ? (
+          <div className="whatsapp-reminder-list">
+            {relevant.map((appointment) => {
+              const profile = profileFor(appointment);
+              const isPayment = appointment.status === "Realizado";
+              return (
+                <article key={appointment.id}>
+                  <div className="avatar soft">
+                    {initials(appointment.patient)}
+                  </div>
+                  <div className="whatsapp-reminder-info">
+                    <strong>{appointment.patient}</strong>
+                    <span>
+                      {formatCalendarDate(
+                        appointmentIsoDate(appointment),
+                        true,
+                      )}{" "}
+                      às {appointment.time}
+                    </span>
+                    <small>
+                      {phoneFor(appointment)
+                        ? `${profile?.reminderRecipient === "Responsável" ? "Responsável" : "Paciente"} · telefone cadastrado`
+                        : "Telefone não cadastrado"}
+                    </small>
+                  </div>
+                  <div className="whatsapp-reminder-status">
+                    {appointment.whatsappSentAt ? (
+                      <span className="sent">
+                        <CheckCircle2 size={14} /> Enviado
+                      </span>
+                    ) : (
+                      <span>Pendente</span>
+                    )}
+                  </div>
+                  <div className="whatsapp-reminder-actions">
+                    {!isPayment && (
+                      <button
+                        className="secondary"
+                        onClick={() => openComposer(appointment, "Confirmação")}
+                      >
+                        Confirmar horário
+                      </button>
+                    )}
+                    {!isPayment && appointment.mode === "Online" && (
+                      <button
+                        className="secondary"
+                        onClick={() =>
+                          openComposer(appointment, "Link da sala")
+                        }
+                      >
+                        Enviar link
+                      </button>
+                    )}
+                    {isPayment && (
+                      <button
+                        className="secondary"
+                        onClick={() => openComposer(appointment, "Pagamento")}
+                      >
+                        Lembrar pagamento
+                      </button>
+                    )}
+                    <button
+                      className="quiet-link"
+                      onClick={() =>
+                        update(
+                          appointment.id,
+                          { whatsappSentAt: new Date().toISOString() },
+                          "Lembrete marcado como enviado",
+                        )
+                      }
+                    >
+                      Marcar como enviado
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="all-clear">
+            <CheckCircle2 />
+            <strong>Nenhuma mensagem pendente.</strong>
+            <span>Os próximos lembretes aparecerão aqui.</span>
+          </div>
+        )}
+      </section>
+      {composer && (
+        <div className="modal-backdrop" onMouseDown={() => setComposer(null)}>
+          <div
+            className="modal whatsapp-composer"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="modal-head">
+              <div>
+                <span className="eyebrow">REVISAR MENSAGEM</span>
+                <h2>{composer.kind}</h2>
+                <p>Para {composer.appointment.patient}</p>
+              </div>
+              <button onClick={() => setComposer(null)}>
+                <X />
+              </button>
+            </div>
+            <label>
+              Mensagem
+              <textarea
+                rows={7}
+                value={composer.message}
+                onChange={(event) =>
+                  setComposer({ ...composer, message: event.target.value })
+                }
+              />
+            </label>
+            <div className="setting-note">
+              O WhatsApp será aberto em outra aba. Confira o destinatário antes
+              de enviar.
+            </div>
+            <div className="modal-actions">
+              <button className="secondary" onClick={() => setComposer(null)}>
+                Cancelar
+              </button>
+              <button className="whatsapp" onClick={openWhatsApp}>
+                <MessageCircle size={17} /> Abrir WhatsApp
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function patientMeetFromProfiles(
+  appointment: Appointment,
+  profiles: PatientProfile[],
+) {
+  return (
+    profiles.find((profile) => profile.name === appointment.patient)?.meetUrl ||
+    appointment.meetUrl
+  );
+}
+
 function SettingsPage({
   settings,
   save,
@@ -6578,6 +6866,7 @@ function SettingsPage({
     | "Perfil"
     | "Aparência"
     | "Agenda"
+    | "WhatsApp"
     | "Idioma e região"
     | "Atendimento online"
     | "Dados e segurança"
@@ -6612,6 +6901,7 @@ function SettingsPage({
               "Perfil",
               "Aparência",
               "Agenda",
+              "WhatsApp",
               "Idioma e região",
               "Atendimento online",
               "Dados e segurança",
@@ -6994,6 +7284,81 @@ function SettingsPage({
                   Aplicada aos dias selecionados acima. Férias e exceções ficam
                   em <strong>Agenda → Bloquear horário</strong>.
                 </div>
+              </div>
+            </>
+          )}
+          {tab === "WhatsApp" && (
+            <>
+              <div className="settings-head">
+                <MessageCircle />
+                <div>
+                  <h2>Mensagens do WhatsApp</h2>
+                  <p>
+                    Personalize os textos que serão abertos para revisão antes
+                    do envio.
+                  </p>
+                </div>
+              </div>
+              <label>
+                Mostrar lembretes com antecedência de
+                <select
+                  value={draft.whatsappReminderHours}
+                  onChange={(event) =>
+                    setDraft({
+                      ...draft,
+                      whatsappReminderHours: Number(event.target.value),
+                    })
+                  }
+                >
+                  <option value={12}>12 horas</option>
+                  <option value={24}>24 horas</option>
+                  <option value={48}>48 horas</option>
+                </select>
+              </label>
+              <label>
+                Confirmação de horário
+                <textarea
+                  rows={4}
+                  value={draft.whatsappConfirmationTemplate}
+                  onChange={(event) =>
+                    setDraft({
+                      ...draft,
+                      whatsappConfirmationTemplate: event.target.value,
+                    })
+                  }
+                />
+              </label>
+              <label>
+                Envio do link da sala
+                <textarea
+                  rows={3}
+                  value={draft.whatsappMeetTemplate}
+                  onChange={(event) =>
+                    setDraft({
+                      ...draft,
+                      whatsappMeetTemplate: event.target.value,
+                    })
+                  }
+                />
+              </label>
+              <label>
+                Lembrete de pagamento
+                <textarea
+                  rows={3}
+                  value={draft.whatsappPaymentTemplate}
+                  onChange={(event) =>
+                    setDraft({
+                      ...draft,
+                      whatsappPaymentTemplate: event.target.value,
+                    })
+                  }
+                />
+              </label>
+              <div className="setting-note">
+                Variáveis disponíveis: <strong>{"{primeiro_nome}"}</strong>,{" "}
+                <strong>{"{profissional}"}</strong>, <strong>{"{data}"}</strong>
+                , <strong>{"{hora}"}</strong>, <strong>{"{link}"}</strong> e{" "}
+                <strong>{"{valor}"}</strong>. Evite informações clínicas.
               </div>
             </>
           )}
