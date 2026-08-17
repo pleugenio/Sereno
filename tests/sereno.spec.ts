@@ -668,3 +668,49 @@ test("prepara lembrete assistido no WhatsApp e registra o envio", async ({
   );
   expect(stored[0].whatsappSentAt).toBeTruthy();
 });
+
+test("organiza lista de espera e remove paciente depois do agendamento", async ({
+  page,
+}) => {
+  await login(page);
+  await page
+    .getByRole("button", { name: "Lista de espera", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Lista de espera" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Adicionar paciente" }).click();
+  await page
+    .getByPlaceholder("Busque um paciente cadastrado")
+    .fill("Paciente Espera E2E");
+  await page.getByRole("button", { name: "Segunda-feira" }).click();
+  await page.getByLabel("Período").selectOption("Tarde");
+  await page.getByLabel("Modalidade").selectOption("Online");
+  await page.getByLabel("Ordem de encaixe").selectOption("Preferencial");
+  await page
+    .getByLabel("Observação administrativa")
+    .fill("Pode ser chamado com antecedência curta");
+  await page.getByRole("button", { name: "Adicionar à lista" }).click();
+  await expect(
+    page.getByText("Paciente adicionado à lista de espera"),
+  ).toBeVisible();
+  await expect(page.getByText("Paciente Espera E2E")).toBeVisible();
+  await expect(page.getByText("Encaixe preferencial")).toBeVisible();
+  await page.getByRole("button", { name: "Agendar", exact: true }).click();
+  const appointmentModal = page.locator("form.modal");
+  await expect(appointmentModal.getByLabel("Paciente")).toHaveValue(
+    "Paciente Espera E2E",
+  );
+  await appointmentModal.getByLabel("Data").fill("24/08/2026");
+  await appointmentModal.getByLabel("Horário").selectOption("16:00");
+  await appointmentModal
+    .getByRole("button", { name: /Agendar atendimento/ })
+    .click();
+  await expect(
+    page.getByText("Atendimento agendado com sucesso"),
+  ).toBeVisible();
+  const waitlist = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("sereno-waitlist") || "[]"),
+  );
+  expect(waitlist).toHaveLength(0);
+});

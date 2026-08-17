@@ -5648,6 +5648,109 @@ header {
   padding: 0.55rem 0.85rem;
 }
 
+.waitlist-card {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5e7e1);
+  border-radius: 22px;
+  padding: 1.25rem;
+}
+
+.waitlist-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.waitlist-list article {
+  align-items: center;
+  border: 1px solid var(--border, #e5e7e1);
+  border-radius: 16px;
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: auto minmax(200px, 1fr) auto auto;
+  padding: 1rem;
+}
+
+.waitlist-info,
+.waitlist-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.waitlist-info span,
+.waitlist-info small {
+  color: var(--muted, #6d716c);
+}
+
+.waitlist-note {
+  font-style: italic;
+}
+
+.waitlist-tags {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.waitlist-tags span {
+  align-items: center;
+  background: #fff3d8;
+  border-radius: 999px;
+  color: #875f14;
+  display: inline-flex;
+  font-size: 0.74rem;
+  font-weight: 700;
+  gap: 0.25rem;
+  padding: 0.35rem 0.55rem;
+  white-space: nowrap;
+}
+
+.waitlist-tags .contacted {
+  background: #e8f7ee;
+  color: #267149;
+}
+
+.waitlist-actions button {
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.waitlist-guidance {
+  margin-top: 1rem;
+}
+
+.quiet-link.danger {
+  color: #a34b4b;
+}
+
+@media (max-width: 1000px) {
+  .waitlist-list article {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .waitlist-actions {
+    grid-column: 2 / -1;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 620px) {
+  .waitlist-list article {
+    grid-template-columns: auto 1fr;
+  }
+
+  .waitlist-tags,
+  .waitlist-actions {
+    grid-column: 1 / -1;
+  }
+
+  .waitlist-actions {
+    display: grid;
+  }
+}
+
 .whatsapp-center-card {
   background: var(--surface, #fff);
   border: 1px solid var(--border, #e5e7e1);

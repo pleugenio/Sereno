@@ -41,12 +41,14 @@ import {
   UserX,
   Download,
   CircleHelp,
+  ClipboardList,
 } from "lucide-react";
 
 type View =
   | "inicio"
   | "agenda"
   | "pacientes"
+  | "lista-espera"
   | "whatsapp"
   | "financeiro"
   | "configuracoes"
@@ -64,6 +66,17 @@ type CalendarBlock = {
   reason: string;
   allDay: boolean;
   recurring: boolean;
+};
+type WaitlistEntry = {
+  id: number;
+  patient: string;
+  days: string[];
+  period: "Manhã" | "Tarde" | "Noite" | "Qualquer horário";
+  mode: "Online" | "Presencial" | "Indiferente";
+  priority: "Normal" | "Preferencial";
+  note: string;
+  createdAt: string;
+  contactedAt?: string;
 };
 type Status = "Confirmado" | "Aguardando" | "Realizado" | "Cancelado" | "Falta";
 type PaymentStatus = "Pendente" | "Pago" | "Parcial" | "Isento" | "Cancelado";
@@ -311,6 +324,11 @@ const nav = [
   { id: "inicio" as View, label: "Visão geral", icon: LayoutDashboard },
   { id: "agenda" as View, label: "Agenda", icon: CalendarDays },
   { id: "pacientes" as View, label: "Pacientes", icon: UsersRound },
+  {
+    id: "lista-espera" as View,
+    label: "Lista de espera",
+    icon: ClipboardList,
+  },
   { id: "whatsapp" as View, label: "WhatsApp", icon: MessageCircle },
   { id: "financeiro" as View, label: "Financeiro", icon: WalletCards },
 ];
@@ -1455,6 +1473,9 @@ export default function App() {
         JSON.stringify(initialProfiles),
     ),
   );
+  const [waitlist, setWaitlist] = useState<WaitlistEntry[]>(() =>
+    JSON.parse(localStorage.getItem("sereno-waitlist") || "[]"),
+  );
   const [settings, setSettings] = useState<AppSettings>(() => {
     const stored = JSON.parse(localStorage.getItem("sereno-settings") || "{}");
     return {
@@ -1606,6 +1627,11 @@ export default function App() {
         paid: false,
       })),
     ]);
+    if (waitlist.some((entry) => entry.patient === form.patient.trim())) {
+      saveWaitlist(
+        waitlist.filter((entry) => entry.patient !== form.patient.trim()),
+      );
+    }
     setModal(false);
     setAppointmentPickerOpen(false);
     setForm({
@@ -1644,6 +1670,34 @@ export default function App() {
       recurrenceEnd: "Quantidade",
       occurrences: 12,
       repeatUntil: addCalendarDays(appointmentDate, 77),
+    });
+    setAppointmentPickerOpen(false);
+    setModal(true);
+  }
+  function saveWaitlist(next: WaitlistEntry[]) {
+    setWaitlist(next);
+    localStorage.setItem("sereno-waitlist", JSON.stringify(next));
+  }
+  function scheduleFromWaitlist(entry: WaitlistEntry) {
+    const suggestedTime =
+      entry.period === "Manhã"
+        ? "09:00"
+        : entry.period === "Tarde"
+          ? "14:00"
+          : entry.period === "Noite"
+            ? "18:00"
+            : settings.workStart;
+    setForm({
+      patient: entry.patient,
+      date: nextAvailableDate(settings.workDays),
+      time: suggestedTime,
+      mode: entry.mode === "Presencial" ? "Presencial" : "Online",
+      duration: settings.sessionDuration,
+      location: "",
+      recurring: "Não repetir",
+      recurrenceEnd: "Quantidade",
+      occurrences: 12,
+      repeatUntil: addCalendarDays(nextAvailableDate(settings.workDays), 77),
     });
     setAppointmentPickerOpen(false);
     setModal(true);
@@ -1936,6 +1990,7 @@ export default function App() {
     save(nextAppointments);
     localStorage.setItem("sereno-profiles", JSON.stringify(nextProfiles));
     localStorage.setItem("sereno-patients", JSON.stringify(nextExtra));
+    saveWaitlist(waitlist.filter((entry) => entry.patient !== name));
     notify("Paciente e atendimentos vinculados foram excluídos");
     return true;
   }
@@ -1981,6 +2036,7 @@ export default function App() {
       version: 1,
       appointments,
       patients: profiles,
+      waitlist,
       settings,
     };
     const blob = new Blob([JSON.stringify(backup, null, 2)], {
@@ -2493,6 +2549,17 @@ export default function App() {
               deletePatient={deletePatient}
               openPatientName={patientToOpen}
               newPatient={() => setPatientModal(true)}
+              notify={notify}
+            />
+          )}
+          {view === "lista-espera" && (
+            <Waitlist
+              entries={waitlist}
+              patients={patients}
+              profiles={profiles}
+              settings={settings}
+              save={saveWaitlist}
+              schedule={scheduleFromWaitlist}
               notify={notify}
             />
           )}
@@ -6577,6 +6644,321 @@ function Finance({
               <button className="primary">
                 <Check size={18} />
                 Salvar registro
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </>
+  );
+}
+
+function Waitlist({
+  entries,
+  patients,
+  profiles,
+  settings,
+  save,
+  schedule,
+  notify,
+}: {
+  entries: WaitlistEntry[];
+  patients: string[];
+  profiles: PatientProfile[];
+  settings: AppSettings;
+  save: (entries: WaitlistEntry[]) => void;
+  schedule: (entry: WaitlistEntry) => void;
+  notify: (message: string) => void;
+}) {
+  const emptyDraft = {
+    patient: "",
+    days: [] as string[],
+    period: "Qualquer horário" as WaitlistEntry["period"],
+    mode: "Indiferente" as WaitlistEntry["mode"],
+    priority: "Normal" as WaitlistEntry["priority"],
+    note: "",
+  };
+  const [modalOpen, setModalOpen] = useState(false);
+  const [draft, setDraft] = useState(emptyDraft);
+  const ordered = [...entries].sort((a, b) => {
+    if (a.priority !== b.priority)
+      return a.priority === "Preferencial" ? -1 : 1;
+    return a.createdAt.localeCompare(b.createdAt);
+  });
+
+  function addEntry(event: React.FormEvent) {
+    event.preventDefault();
+    if (!draft.patient.trim()) return;
+    if (entries.some((entry) => entry.patient === draft.patient.trim())) {
+      notify("Este paciente já está na lista de espera");
+      return;
+    }
+    save([
+      ...entries,
+      {
+        id: Date.now(),
+        ...draft,
+        patient: draft.patient.trim(),
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+    setDraft(emptyDraft);
+    setModalOpen(false);
+    notify("Paciente adicionado à lista de espera");
+  }
+  function toggleDay(day: string) {
+    setDraft({
+      ...draft,
+      days: draft.days.includes(day)
+        ? draft.days.filter((item) => item !== day)
+        : [...draft.days, day],
+    });
+  }
+  function contact(entry: WaitlistEntry) {
+    const profile = profiles.find((item) => item.name === entry.patient);
+    const raw =
+      profile?.reminderRecipient === "Responsável"
+        ? profile.guardianPhone
+        : profile?.phone;
+    const digits = raw?.replace(/\D/g, "") || "";
+    if (!digits) {
+      notify("Cadastre o telefone do paciente ou responsável primeiro");
+      return;
+    }
+    const phone = digits.startsWith("55") ? digits : `55${digits}`;
+    const message = `Olá, ${entry.patient.split(" ")[0]}. Surgiu uma possibilidade de horário com ${settings.professionalName}. Podemos conversar sobre a disponibilidade?`;
+    window.open(
+      `https://wa.me/${phone}?text=${encodeURIComponent(message)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+    save(
+      entries.map((item) =>
+        item.id === entry.id
+          ? { ...item, contactedAt: new Date().toISOString() }
+          : item,
+      ),
+    );
+  }
+  return (
+    <>
+      <section className="page-title serene-title">
+        <div>
+          <span className="eyebrow">OPORTUNIDADES DE ENCAIXE</span>
+          <h1>Lista de espera</h1>
+          <p>
+            Organize preferências e preencha horários liberados sem depender da
+            memória.
+          </p>
+        </div>
+        <button className="primary" onClick={() => setModalOpen(true)}>
+          <Plus size={18} /> Adicionar paciente
+        </button>
+      </section>
+      <section className="waitlist-card">
+        <div className="section-label">
+          <span>
+            <ClipboardList size={17} /> Aguardando horário
+          </span>
+          <small>
+            {entries.length} {entries.length === 1 ? "pessoa" : "pessoas"}
+          </small>
+        </div>
+        {ordered.length ? (
+          <div className="waitlist-list">
+            {ordered.map((entry) => (
+              <article key={entry.id}>
+                <div className="avatar soft">{initials(entry.patient)}</div>
+                <div className="waitlist-info">
+                  <strong>{entry.patient}</strong>
+                  <span>
+                    {entry.days.length ? entry.days.join(", ") : "Qualquer dia"}{" "}
+                    · {entry.period}
+                  </span>
+                  <small>
+                    {entry.mode} · incluído em{" "}
+                    {formatBrazilianDate(entry.createdAt.slice(0, 10))}
+                  </small>
+                  {entry.note && (
+                    <small className="waitlist-note">{entry.note}</small>
+                  )}
+                </div>
+                <div className="waitlist-tags">
+                  {entry.priority === "Preferencial" && (
+                    <span>Encaixe preferencial</span>
+                  )}
+                  {entry.contactedAt && (
+                    <span className="contacted">
+                      <CheckCircle2 size={13} /> Contatado
+                    </span>
+                  )}
+                </div>
+                <div className="waitlist-actions">
+                  <button className="primary" onClick={() => schedule(entry)}>
+                    <CalendarDays size={16} /> Agendar
+                  </button>
+                  <button className="secondary" onClick={() => contact(entry)}>
+                    <MessageCircle size={16} /> WhatsApp
+                  </button>
+                  <button
+                    className="quiet-link danger"
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          `Remover ${entry.patient} da lista de espera?`,
+                        )
+                      ) {
+                        save(entries.filter((item) => item.id !== entry.id));
+                        notify("Paciente removido da lista de espera");
+                      }
+                    }}
+                  >
+                    Remover
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="all-clear">
+            <CheckCircle2 />
+            <strong>Lista de espera vazia.</strong>
+            <span>Adicione alguém quando não houver um horário adequado.</span>
+          </div>
+        )}
+      </section>
+      <div className="setting-note waitlist-guidance">
+        Use somente preferências administrativas. Informações clínicas não devem
+        ser registradas nesta lista.
+      </div>
+      {modalOpen && (
+        <div className="modal-backdrop" onMouseDown={() => setModalOpen(false)}>
+          <form
+            className="modal waitlist-modal"
+            onSubmit={addEntry}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="modal-head">
+              <div>
+                <span className="eyebrow">NOVO INTERESSADO</span>
+                <h2>Adicionar à lista</h2>
+                <p>Registre preferências para encontrar um encaixe adequado.</p>
+              </div>
+              <button type="button" onClick={() => setModalOpen(false)}>
+                <X />
+              </button>
+            </div>
+            <label>
+              Paciente
+              <input
+                list="waitlist-patients"
+                required
+                value={draft.patient}
+                onChange={(event) =>
+                  setDraft({ ...draft, patient: event.target.value })
+                }
+                placeholder="Busque um paciente cadastrado"
+              />
+              <datalist id="waitlist-patients">
+                {patients.map((patient) => (
+                  <option key={patient} value={patient} />
+                ))}
+              </datalist>
+            </label>
+            <label>
+              Dias preferidos
+              <div className="choice-row">
+                {[
+                  ["Seg", "Segunda-feira"],
+                  ["Ter", "Terça-feira"],
+                  ["Qua", "Quarta-feira"],
+                  ["Qui", "Quinta-feira"],
+                  ["Sex", "Sexta-feira"],
+                  ["Sáb", "Sábado"],
+                ].map(([day, label]) => (
+                  <button
+                    type="button"
+                    key={day}
+                    aria-label={label}
+                    className={draft.days.includes(day) ? "selected" : ""}
+                    onClick={() => toggleDay(day)}
+                  >
+                    {day}
+                  </button>
+                ))}
+              </div>
+            </label>
+            <div className="form-row">
+              <label>
+                Período
+                <select
+                  value={draft.period}
+                  onChange={(event) =>
+                    setDraft({
+                      ...draft,
+                      period: event.target.value as WaitlistEntry["period"],
+                    })
+                  }
+                >
+                  <option>Qualquer horário</option>
+                  <option>Manhã</option>
+                  <option>Tarde</option>
+                  <option>Noite</option>
+                </select>
+              </label>
+              <label>
+                Modalidade
+                <select
+                  value={draft.mode}
+                  onChange={(event) =>
+                    setDraft({
+                      ...draft,
+                      mode: event.target.value as WaitlistEntry["mode"],
+                    })
+                  }
+                >
+                  <option>Indiferente</option>
+                  <option>Online</option>
+                  <option>Presencial</option>
+                </select>
+              </label>
+            </div>
+            <label>
+              Ordem de encaixe
+              <select
+                value={draft.priority}
+                onChange={(event) =>
+                  setDraft({
+                    ...draft,
+                    priority: event.target.value as WaitlistEntry["priority"],
+                  })
+                }
+              >
+                <option>Normal</option>
+                <option>Preferencial</option>
+              </select>
+            </label>
+            <label>
+              Observação administrativa
+              <textarea
+                rows={3}
+                value={draft.note}
+                onChange={(event) =>
+                  setDraft({ ...draft, note: event.target.value })
+                }
+                placeholder="Ex.: consegue chegar com 30 minutos de antecedência"
+              />
+            </label>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setModalOpen(false)}
+              >
+                Cancelar
+              </button>
+              <button className="primary">
+                <Plus size={17} /> Adicionar à lista
               </button>
             </div>
           </form>
