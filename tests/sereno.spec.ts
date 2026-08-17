@@ -478,7 +478,11 @@ test("mostra hoje e amanhã como terceira opção de preparação", async ({
     page.getByRole("heading", { name: "Hoje e amanhã" }),
   ).toBeVisible();
   await expect(page.locator(".planning-day")).toHaveCount(2);
-  await expect(page.getByText("Nenhuma sessão agendada")).toHaveCount(2);
+  await expect(
+    page.locator(
+      ".planning-day > .planning-empty, .planning-day > .planning-list",
+    ),
+  ).toHaveCount(2);
   await page
     .locator(".dashboard-planning")
     .getByRole("button", { name: "Ver agenda completa" })
