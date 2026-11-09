@@ -2270,14 +2270,27 @@ html[data-simple="true"] .notification-list strong {
   margin-bottom: 22px;
   border-bottom: 1px solid var(--line);
 }
-.preset-avatar-section > div:first-child strong {
+.preset-avatar-copy strong {
   color: var(--deep);
   font-size: 14px;
 }
-.preset-avatar-section > div:first-child p {
+.preset-avatar-copy p {
   color: var(--muted);
   font-size: 12px;
   margin: 3px 0 13px;
+}
+.preset-avatar-toggle {
+  justify-content: space-between;
+  width: 100%;
+}
+.preset-avatar-toggle svg {
+  transition: transform 160ms ease;
+}
+.preset-avatar-toggle svg.expanded {
+  transform: rotate(180deg);
+}
+.preset-avatar-toggle + div {
+  margin-top: 16px;
 }
 .preset-avatar-grid {
   display: grid;
@@ -5654,7 +5667,12 @@ header {
 
 .waitlist-panel-head {
   align-items: flex-start;
+  gap: 1rem;
   margin-bottom: 1rem;
+}
+
+.waitlist-panel-head > div:first-child {
+  min-width: 0;
 }
 
 .waitlist-panel-head h1 {
@@ -5664,7 +5682,20 @@ header {
 .waitlist-head-actions {
   align-items: center;
   display: flex;
+  flex-shrink: 0;
   gap: 0.6rem;
+}
+
+.modal-head .waitlist-head-actions .primary {
+  background: var(--green);
+  color: white;
+  height: auto;
+  width: auto;
+  white-space: nowrap;
+}
+
+.modal-head .waitlist-head-actions .primary:hover {
+  background: var(--deep);
 }
 
 .waitlist-list {
@@ -5749,6 +5780,15 @@ header {
 }
 
 @media (max-width: 620px) {
+  .waitlist-panel-head {
+    flex-direction: column;
+  }
+
+  .waitlist-head-actions {
+    justify-content: space-between;
+    width: 100%;
+  }
+
   .waitlist-list article {
     grid-template-columns: auto 1fr;
   }

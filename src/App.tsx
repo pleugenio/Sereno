@@ -6,6 +6,7 @@ import {
   CalendarDays,
   Check,
   ChevronLeft,
+  ChevronDown,
   ChevronRight,
   CircleDollarSign,
   Clock3,
@@ -1419,6 +1420,9 @@ export default function App() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [waitlistOpen, setWaitlistOpen] = useState(false);
+  const [schedulingWaitlistEntryId, setSchedulingWaitlistEntryId] = useState<
+    number | null
+  >(null);
   const [patientToOpen, setPatientToOpen] = useState<string | null>(null);
   const [patientOpenNonce, setPatientOpenNonce] = useState(0);
   const [toast, setToast] = useState("");
@@ -1617,9 +1621,9 @@ export default function App() {
         paid: false,
       })),
     ]);
-    if (waitlist.some((entry) => entry.patient === form.patient.trim())) {
+    if (schedulingWaitlistEntryId !== null) {
       saveWaitlist(
-        waitlist.filter((entry) => entry.patient !== form.patient.trim()),
+        waitlist.filter((entry) => entry.id !== schedulingWaitlistEntryId),
       );
     }
     setModal(false);
@@ -1640,12 +1644,16 @@ export default function App() {
     notify(
       interval
         ? `${availableDates.length} atendimentos criados${skipped ? `; ${skipped} conflito(s) ignorado(s)` : ""}`
-        : "Atendimento agendado com sucesso",
+        : schedulingWaitlistEntryId !== null
+          ? "Atendimento agendado com sucesso. Paciente removido da lista de espera"
+          : "Atendimento agendado com sucesso",
     );
+    setSchedulingWaitlistEntryId(null);
   }
   function closeAppointmentModal() {
     setModal(false);
     setAppointmentPickerOpen(false);
+    setSchedulingWaitlistEntryId(null);
   }
   function openNewAppointment(date?: string, time = "08:00") {
     const appointmentDate = date || nextAvailableDate(settings.workDays);
@@ -1662,6 +1670,7 @@ export default function App() {
       repeatUntil: addCalendarDays(appointmentDate, 77),
     });
     setAppointmentPickerOpen(false);
+    setSchedulingWaitlistEntryId(null);
     setModal(true);
   }
   function saveWaitlist(next: WaitlistEntry[]) {
@@ -1690,6 +1699,7 @@ export default function App() {
       repeatUntil: addCalendarDays(nextAvailableDate(settings.workDays), 77),
     });
     setAppointmentPickerOpen(false);
+    setSchedulingWaitlistEntryId(entry.id);
     setModal(true);
   }
   function openAt(date: string, time: string) {
@@ -1746,7 +1756,7 @@ export default function App() {
           : undefined,
       paymentDate:
         paid || closingForm.paymentStatus === "Parcial"
-          ? new Date().toISOString().slice(0, 10)
+          ? toIsoDate(new Date())
           : undefined,
       receiptStatus:
         closingForm.paymentStatus === "Isento"
@@ -2065,7 +2075,7 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `sereno-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    link.download = `sereno-backup-${toIsoDate(new Date())}.json`;
     link.click();
     URL.revokeObjectURL(url);
     notify("Backup administrativo preparado para download");
@@ -6085,7 +6095,7 @@ function Finance({
     amount: 180,
     status: "Pago" as PaymentStatus,
     method: "Pix",
-    date: new Date().toISOString().slice(0, 10),
+    date: toIsoDate(new Date()),
   });
   const rows = appointments.map((a) => ({
     ...a,
@@ -6162,7 +6172,7 @@ function Finance({
         ? "Isento"
         : (a.paymentStatus ?? (a.paid ? "Pago" : "Pendente")),
       method: a.paymentMethod || "Pix",
-      date: a.paymentDate || new Date().toISOString().slice(0, 10),
+      date: a.paymentDate || toIsoDate(new Date()),
     });
   }
   function openPatient(name: string) {
@@ -7033,6 +7043,7 @@ function SettingsPage({
 }) {
   const [draft, setDraft] = useState({ ...defaultSettings, ...settings });
   const [avatarError, setAvatarError] = useState("");
+  const [avatarGalleryOpen, setAvatarGalleryOpen] = useState(false);
   const [tab, setTab] = useState<
     | "Perfil"
     | "Aparência"
@@ -7166,36 +7177,54 @@ function SettingsPage({
                 </div>
               </div>
               <div className="preset-avatar-section">
-                <div>
-                  <strong>Avatares Sereno</strong>
-                  <p>
-                    Ou escolha uma ilustração pronta para representar seu
-                    perfil.
-                  </p>
-                </div>
-                <div className="preset-avatar-grid">
-                  {presetAvatars.map((avatar) => (
-                    <button
-                      type="button"
-                      key={avatar.src}
-                      className={
-                        draft.avatarDataUrl === avatar.src ? "selected" : ""
-                      }
-                      onClick={() =>
-                        setDraft({ ...draft, avatarDataUrl: avatar.src })
-                      }
-                      aria-label={`Usar avatar ${avatar.name}`}
-                    >
-                      <img src={avatar.src} alt="" />
-                      <span>{avatar.name}</span>
-                      {draft.avatarDataUrl === avatar.src && (
-                        <i aria-hidden="true">
-                          <Check size={13} />
-                        </i>
-                      )}
-                    </button>
-                  ))}
-                </div>
+                <button
+                  type="button"
+                  className="secondary preset-avatar-toggle"
+                  aria-expanded={avatarGalleryOpen}
+                  aria-controls="preset-avatar-gallery"
+                  onClick={() => setAvatarGalleryOpen((open) => !open)}
+                >
+                  {avatarGalleryOpen ? "Ocultar avatares" : "Trocar avatar"}
+                  <ChevronDown
+                    size={17}
+                    className={avatarGalleryOpen ? "expanded" : ""}
+                  />
+                </button>
+                {avatarGalleryOpen && (
+                  <div id="preset-avatar-gallery">
+                    <div className="preset-avatar-copy">
+                      <strong>Avatares Sereno</strong>
+                      <p>
+                        Escolha uma ilustração pronta para representar seu
+                        perfil.
+                      </p>
+                    </div>
+                    <div className="preset-avatar-grid">
+                      {presetAvatars.map((avatar) => (
+                        <button
+                          type="button"
+                          key={avatar.src}
+                          className={
+                            draft.avatarDataUrl === avatar.src ? "selected" : ""
+                          }
+                          onClick={() => {
+                            setDraft({ ...draft, avatarDataUrl: avatar.src });
+                            setAvatarGalleryOpen(false);
+                          }}
+                          aria-label={`Usar avatar ${avatar.name}`}
+                        >
+                          <img src={avatar.src} alt="" />
+                          <span>{avatar.name}</span>
+                          {draft.avatarDataUrl === avatar.src && (
+                            <i aria-hidden="true">
+                              <Check size={13} />
+                            </i>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="form-row">
                 <label>

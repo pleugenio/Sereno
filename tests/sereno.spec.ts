@@ -125,6 +125,10 @@ test("fluxo profissional: agenda, paciente, busca, financeiro e configurações"
   });
   await expect(page.getByAltText("Prévia da foto do perfil")).toBeVisible();
   await expect(page.getByRole("button", { name: /^Usar avatar/ })).toHaveCount(
+    0,
+  );
+  await page.getByRole("button", { name: "Trocar avatar" }).click();
+  await expect(page.getByRole("button", { name: /^Usar avatar/ })).toHaveCount(
     10,
   );
   await page
@@ -648,13 +652,15 @@ test("organiza lista de espera e remove paciente depois do agendamento", async (
   await expect(appointmentModal.getByLabel("Paciente")).toHaveValue(
     "Paciente Espera E2E",
   );
-  await appointmentModal.getByLabel("Data").fill("24/08/2026");
-  await appointmentModal.getByLabel("Horário").selectOption("16:00");
+  await appointmentModal.getByLabel("Horário").selectOption("17:00");
   await appointmentModal
     .getByRole("button", { name: /Agendar atendimento/ })
     .click();
   await expect(
     page.getByText("Atendimento agendado com sucesso"),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Paciente removido da lista de espera"),
   ).toBeVisible();
   const waitlist = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("sereno-waitlist") || "[]"),
